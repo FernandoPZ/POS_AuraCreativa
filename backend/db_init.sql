@@ -1,13 +1,4 @@
---
--- PostgreSQL database dump
---
-
-\restrict J5lxg1DHKLlPbgt6aMEssVp0dJzdqiInIs8CEZ5gtzytodT06m7Zd8pD39rxVGW
-
--- Dumped from database version 18.0
--- Dumped by pg_dump version 18.0
-
--- Started on 2025-09-29 20:30:51
+\restrict Yy6dbFY9iY6Gxe0TPe02KxotOiy58wKCYRyorvgQGqAeEfim5gcQGZfkgVz6zvO
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -21,38 +12,38 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+ALTER SCHEMA public OWNER TO postgres;
+
+COMMENT ON SCHEMA public IS '';
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
---
--- TOC entry 226 (class 1259 OID 16650)
--- Name: Articulos; Type: TABLE; Schema: public; Owner: postgres
---
-
 CREATE TABLE public."Articulos" (
-    "IdArticulo" integer NOT NULL,
-    "CodArticulo" character varying(50) NOT NULL,
-    "NomArticulo" character varying(150) NOT NULL,
+    "IdArticulo" integer CONSTRAINT "Articulos_IdArticulo_not_null1" NOT NULL,
+    "CodArticulo" character varying(50) CONSTRAINT "Articulos_CodArticulo_not_null1" NOT NULL,
+    "NomArticulo" character varying(150) CONSTRAINT "Articulos_NomArticulo_not_null1" NOT NULL,
+    "DetallesTecnicos" text,
+    "Categoria" character varying(50) DEFAULT 'GENERAL'::character varying,
+    "PrecioVenta" numeric(10,2) DEFAULT 0 CONSTRAINT "Articulos_PrecioVenta_not_null1" NOT NULL,
+    "CostoPromedio" numeric(10,2) DEFAULT 0,
+    "NombreUnidad" character varying(20) DEFAULT 'Pza'::character varying,
     "StockActual" integer DEFAULT 0,
+    "Talla" character varying(10),
+    "Color" character varying(30),
     "IdProveedor" integer,
-    "IdCfgStock" integer NOT NULL,
-    "BajaLogica" boolean DEFAULT true,
-    "FechaAlta" timestamp without time zone DEFAULT now(),
-    "FechaUltMod" timestamp without time zone DEFAULT now(),
-    "ClaUserMod" integer,
-    "NombrePcMod" character varying(100)
+    "IdCfgStock" integer,
+    "FechaCreacion" timestamp without time zone DEFAULT now(),
+    "FechaModificacion" timestamp without time zone,
+    "IdUsuarioCreacion" integer,
+    "Activo" boolean DEFAULT true,
+    "Imagen" character varying(255)
 );
-
 
 ALTER TABLE public."Articulos" OWNER TO postgres;
 
---
--- TOC entry 225 (class 1259 OID 16649)
--- Name: Articulos_IdArticulo_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public."Articulos_IdArticulo_seq"
+CREATE SEQUENCE public."Articulos_IdArticulo_seq1"
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -60,41 +51,19 @@ CREATE SEQUENCE public."Articulos_IdArticulo_seq"
     NO MAXVALUE
     CACHE 1;
 
+ALTER SEQUENCE public."Articulos_IdArticulo_seq1" OWNER TO postgres;
 
-ALTER SEQUENCE public."Articulos_IdArticulo_seq" OWNER TO postgres;
-
---
--- TOC entry 5095 (class 0 OID 0)
--- Dependencies: 225
--- Name: Articulos_IdArticulo_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE public."Articulos_IdArticulo_seq" OWNED BY public."Articulos"."IdArticulo";
-
-
---
--- TOC entry 220 (class 1259 OID 16606)
--- Name: CfgStock; Type: TABLE; Schema: public; Owner: postgres
---
+ALTER SEQUENCE public."Articulos_IdArticulo_seq1" OWNED BY public."Articulos"."IdArticulo";
 
 CREATE TABLE public."CfgStock" (
     "IdCfgStock" integer NOT NULL,
     "CantidadMaxima" integer NOT NULL,
     "CantidadMinima" integer NOT NULL,
-    "BajaLogica" boolean DEFAULT true,
     "FechaAlta" timestamp without time zone DEFAULT now(),
-    "FechaUltMod" timestamp without time zone DEFAULT now(),
-    "ClaUserMod" integer,
-    "NombrePcMod" character varying(100)
+    "Activo" boolean DEFAULT true
 );
 
-
 ALTER TABLE public."CfgStock" OWNER TO postgres;
-
---
--- TOC entry 219 (class 1259 OID 16605)
--- Name: CfgStock_IdCfgStock_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
 
 CREATE SEQUENCE public."CfgStock_IdCfgStock_seq"
     AS integer
@@ -104,42 +73,136 @@ CREATE SEQUENCE public."CfgStock_IdCfgStock_seq"
     NO MAXVALUE
     CACHE 1;
 
-
 ALTER SEQUENCE public."CfgStock_IdCfgStock_seq" OWNER TO postgres;
-
---
--- TOC entry 5096 (class 0 OID 0)
--- Dependencies: 219
--- Name: CfgStock_IdCfgStock_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
 
 ALTER SEQUENCE public."CfgStock_IdCfgStock_seq" OWNED BY public."CfgStock"."IdCfgStock";
 
+CREATE TABLE public."Combos" (
+    "IdCombo" integer NOT NULL,
+    "Nombre" character varying(100) NOT NULL,
+    "Codigo" character varying(50),
+    "Precio" numeric(10,2) NOT NULL,
+    "FechaCreacion" timestamp without time zone DEFAULT now(),
+    "IdUsuarioCreacion" integer,
+    "Activo" boolean DEFAULT true
+);
 
---
--- TOC entry 228 (class 1259 OID 16682)
--- Name: Entradas; Type: TABLE; Schema: public; Owner: postgres
---
+ALTER TABLE public."Combos" OWNER TO postgres;
+
+CREATE SEQUENCE public."Combos_IdCombo_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public."Combos_IdCombo_seq" OWNER TO postgres;
+
+ALTER SEQUENCE public."Combos_IdCombo_seq" OWNED BY public."Combos"."IdCombo";
+
+CREATE TABLE public."Configuracion" (
+    "IdConfig" integer NOT NULL,
+    "NombreTienda" text DEFAULT 'Mi Tienda'::text,
+    "Direccion" text,
+    "Telefono" text,
+    "MensajeTicket" text DEFAULT '¡Gracias por su compra!'::text,
+    "RedSocial" text,
+    "LogoUrl" text
+);
+
+ALTER TABLE public."Configuracion" OWNER TO postgres;
+
+CREATE SEQUENCE public."Configuracion_IdConfig_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public."Configuracion_IdConfig_seq" OWNER TO postgres;
+
+ALTER SEQUENCE public."Configuracion_IdConfig_seq" OWNED BY public."Configuracion"."IdConfig";
+
+CREATE TABLE public."DetalleCombos" (
+    "IdDetalleCombo" integer NOT NULL,
+    "IdCombo" integer,
+    "IdArticulo" integer,
+    "Cantidad" integer DEFAULT 1 NOT NULL
+);
+
+ALTER TABLE public."DetalleCombos" OWNER TO postgres;
+
+CREATE SEQUENCE public."DetalleCombos_IdDetalleCombo_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public."DetalleCombos_IdDetalleCombo_seq" OWNER TO postgres;
+
+ALTER SEQUENCE public."DetalleCombos_IdDetalleCombo_seq" OWNED BY public."DetalleCombos"."IdDetalleCombo";
+
+CREATE TABLE public."DetalleEntradas" (
+    "IdDetalleEntrada" integer NOT NULL,
+    "IdEntrada" integer,
+    "IdArticulo" integer,
+    "Cantidad" integer NOT NULL,
+    "CostoUnitario" numeric(10,2) NOT NULL,
+    "Subtotal" numeric(10,2) NOT NULL
+);
+
+ALTER TABLE public."DetalleEntradas" OWNER TO postgres;
+
+CREATE SEQUENCE public."DetalleEntradas_IdDetalleEntrada_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public."DetalleEntradas_IdDetalleEntrada_seq" OWNER TO postgres;
+
+ALTER SEQUENCE public."DetalleEntradas_IdDetalleEntrada_seq" OWNED BY public."DetalleEntradas"."IdDetalleEntrada";
+
+CREATE TABLE public."DetalleVentas" (
+    "IdDetalle" integer NOT NULL,
+    "IdVenta" integer,
+    "IdArticulo" integer,
+    "IdCombo" integer,
+    "Cantidad" integer NOT NULL,
+    "PrecioUnitario" numeric(10,2) NOT NULL,
+    "Subtotal" numeric(10,2) NOT NULL
+);
+
+ALTER TABLE public."DetalleVentas" OWNER TO postgres;
+
+CREATE SEQUENCE public."DetalleVentas_IdDetalle_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public."DetalleVentas_IdDetalle_seq" OWNER TO postgres;
+
+ALTER SEQUENCE public."DetalleVentas_IdDetalle_seq" OWNED BY public."DetalleVentas"."IdDetalle";
 
 CREATE TABLE public."Entradas" (
     "IdEntrada" integer NOT NULL,
-    "IdArticulo" integer NOT NULL,
-    "Cantidad" integer NOT NULL,
+    "IdProveedor" integer,
+    "Fecha" timestamp without time zone DEFAULT now(),
+    "Total" numeric(10,2) NOT NULL,
     "Comentarios" text,
-    "FechaMovimiento" timestamp without time zone DEFAULT now(),
-    "BajaLogica" boolean DEFAULT true,
-    "FechaUltMod" timestamp without time zone DEFAULT now(),
-    "ClaUserMod" integer,
-    "NombrePcMod" character varying(100)
+    "IdUsuarioCreacion" integer
 );
 
-
 ALTER TABLE public."Entradas" OWNER TO postgres;
-
---
--- TOC entry 227 (class 1259 OID 16681)
--- Name: Entradas_IdEntrada_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
 
 CREATE SEQUENCE public."Entradas_IdEntrada_seq"
     AS integer
@@ -149,42 +212,27 @@ CREATE SEQUENCE public."Entradas_IdEntrada_seq"
     NO MAXVALUE
     CACHE 1;
 
-
 ALTER SEQUENCE public."Entradas_IdEntrada_seq" OWNER TO postgres;
-
---
--- TOC entry 5097 (class 0 OID 0)
--- Dependencies: 227
--- Name: Entradas_IdEntrada_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
 
 ALTER SEQUENCE public."Entradas_IdEntrada_seq" OWNED BY public."Entradas"."IdEntrada";
 
-
---
--- TOC entry 224 (class 1259 OID 16637)
--- Name: Proveedores; Type: TABLE; Schema: public; Owner: postgres
---
-
 CREATE TABLE public."Proveedores" (
-    "IdProveedor" integer NOT NULL,
-    "NomProveedor" character varying(100) NOT NULL,
+    "IdProveedor" integer CONSTRAINT "Proveedores_IdProveedor_not_null1" NOT NULL,
+    "NomProveedor" character varying(100) CONSTRAINT "Proveedores_NomProveedor_not_null1" NOT NULL,
     "RFC" character varying(20),
-    "BajaLogica" boolean DEFAULT true,
-    "FechaUltMod" timestamp without time zone DEFAULT now(),
-    "ClaUserMod" integer,
-    "NombrePcMod" character varying(100)
+    "Direccion" text,
+    "Telefono" character varying(50),
+    "Email" character varying(100),
+    "NombreContacto" character varying(100),
+    "FechaCreacion" timestamp without time zone DEFAULT now(),
+    "FechaModificacion" timestamp without time zone,
+    "IdUsuarioCreacion" integer,
+    "Activo" boolean DEFAULT true
 );
-
 
 ALTER TABLE public."Proveedores" OWNER TO postgres;
 
---
--- TOC entry 223 (class 1259 OID 16636)
--- Name: Proveedores_IdProveedor_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE public."Proveedores_IdProveedor_seq"
+CREATE SEQUENCE public."Proveedores_IdProveedor_seq1"
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -192,22 +240,30 @@ CREATE SEQUENCE public."Proveedores_IdProveedor_seq"
     NO MAXVALUE
     CACHE 1;
 
+ALTER SEQUENCE public."Proveedores_IdProveedor_seq1" OWNER TO postgres;
 
-ALTER SEQUENCE public."Proveedores_IdProveedor_seq" OWNER TO postgres;
+ALTER SEQUENCE public."Proveedores_IdProveedor_seq1" OWNED BY public."Proveedores"."IdProveedor";
 
---
--- TOC entry 5098 (class 0 OID 0)
--- Dependencies: 223
--- Name: Proveedores_IdProveedor_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
+CREATE TABLE public."PuntosEntrega" (
+    "IdPunto" integer NOT NULL,
+    "NombrePunto" text NOT NULL,
+    "LinkGoogleMaps" text NOT NULL,
+    "Activo" boolean DEFAULT true
+);
 
-ALTER SEQUENCE public."Proveedores_IdProveedor_seq" OWNED BY public."Proveedores"."IdProveedor";
+ALTER TABLE public."PuntosEntrega" OWNER TO postgres;
 
+CREATE SEQUENCE public."PuntosEntrega_IdPunto_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
 
---
--- TOC entry 230 (class 1259 OID 16707)
--- Name: Salidas; Type: TABLE; Schema: public; Owner: postgres
---
+ALTER SEQUENCE public."PuntosEntrega_IdPunto_seq" OWNER TO postgres;
+
+ALTER SEQUENCE public."PuntosEntrega_IdPunto_seq" OWNED BY public."PuntosEntrega"."IdPunto";
 
 CREATE TABLE public."Salidas" (
     "IdSalida" integer NOT NULL,
@@ -215,19 +271,10 @@ CREATE TABLE public."Salidas" (
     "Cantidad" integer NOT NULL,
     "Comentarios" text,
     "FechaMovimiento" timestamp without time zone DEFAULT now(),
-    "BajaLogica" boolean DEFAULT true,
-    "FechaUltMod" timestamp without time zone DEFAULT now(),
-    "ClaUserMod" integer,
-    "NombrePcMod" character varying(100)
+    "Activo" boolean DEFAULT true
 );
 
-
 ALTER TABLE public."Salidas" OWNER TO postgres;
-
---
--- TOC entry 229 (class 1259 OID 16706)
--- Name: Salidas_IdSalida_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
 
 CREATE SEQUENCE public."Salidas_IdSalida_seq"
     AS integer
@@ -237,42 +284,22 @@ CREATE SEQUENCE public."Salidas_IdSalida_seq"
     NO MAXVALUE
     CACHE 1;
 
-
 ALTER SEQUENCE public."Salidas_IdSalida_seq" OWNER TO postgres;
 
---
--- TOC entry 5099 (class 0 OID 0)
--- Dependencies: 229
--- Name: Salidas_IdSalida_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
 ALTER SEQUENCE public."Salidas_IdSalida_seq" OWNED BY public."Salidas"."IdSalida";
-
-
---
--- TOC entry 222 (class 1259 OID 16619)
--- Name: Usuario; Type: TABLE; Schema: public; Owner: postgres
---
 
 CREATE TABLE public."Usuario" (
     "IdUsuario" integer NOT NULL,
     "Nombre" character varying(100) NOT NULL,
     "Email" character varying(100) NOT NULL,
     "PasswordHash" character varying(255) NOT NULL,
-    "Rol" character varying(50) DEFAULT 'USER'::character varying,
-    "BajaLogica" boolean DEFAULT true,
-    "FechaUltMod" timestamp without time zone DEFAULT now(),
-    "ClaUserMod" integer,
-    "NombrePcMod" character varying(100)
+    "Rol" character varying(50) DEFAULT 'User'::character varying,
+    "FechaCreacion" timestamp without time zone DEFAULT now(),
+    "FechaModificacion" timestamp without time zone,
+    "Activo" boolean DEFAULT true
 );
 
-
 ALTER TABLE public."Usuario" OWNER TO postgres;
-
---
--- TOC entry 221 (class 1259 OID 16618)
--- Name: Usuario_IdUsuario_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
 
 CREATE SEQUENCE public."Usuario_IdUsuario_seq"
     AS integer
@@ -282,371 +309,186 @@ CREATE SEQUENCE public."Usuario_IdUsuario_seq"
     NO MAXVALUE
     CACHE 1;
 
-
 ALTER SEQUENCE public."Usuario_IdUsuario_seq" OWNER TO postgres;
-
---
--- TOC entry 5100 (class 0 OID 0)
--- Dependencies: 221
--- Name: Usuario_IdUsuario_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
 
 ALTER SEQUENCE public."Usuario_IdUsuario_seq" OWNED BY public."Usuario"."IdUsuario";
 
+CREATE TABLE public."Ventas" (
+    "IdVenta" integer NOT NULL,
+    "Fecha" timestamp without time zone DEFAULT now(),
+    "Total" numeric(10,2) NOT NULL,
+    "Estado" character varying(20) DEFAULT 'COMPLETADA'::character varying,
+    "ClienteNombre" text,
+    "IdUsuario" integer,
+    "IdPuntoEntrega" integer
+);
 
---
--- TOC entry 4892 (class 2604 OID 16653)
--- Name: Articulos IdArticulo; Type: DEFAULT; Schema: public; Owner: postgres
---
+ALTER TABLE public."Ventas" OWNER TO postgres;
 
-ALTER TABLE ONLY public."Articulos" ALTER COLUMN "IdArticulo" SET DEFAULT nextval('public."Articulos_IdArticulo_seq"'::regclass);
+CREATE SEQUENCE public."Ventas_IdVenta_seq"
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
 
+ALTER SEQUENCE public."Ventas_IdVenta_seq" OWNER TO postgres;
 
---
--- TOC entry 4881 (class 2604 OID 16609)
--- Name: CfgStock IdCfgStock; Type: DEFAULT; Schema: public; Owner: postgres
---
+ALTER SEQUENCE public."Ventas_IdVenta_seq" OWNED BY public."Ventas"."IdVenta";
+
+CREATE TABLE public.bitacora_actividades (
+    id integer NOT NULL,
+    usuario_id integer,
+    accion character varying(255) NOT NULL,
+    detalles text,
+    fecha timestamp without time zone DEFAULT now()
+);
+
+ALTER TABLE public.bitacora_actividades OWNER TO postgres;
+
+CREATE SEQUENCE public.bitacora_actividades_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE public.bitacora_actividades_id_seq OWNER TO postgres;
+
+ALTER SEQUENCE public.bitacora_actividades_id_seq OWNED BY public.bitacora_actividades.id;
+
+ALTER TABLE ONLY public."Articulos" ALTER COLUMN "IdArticulo" SET DEFAULT nextval('public."Articulos_IdArticulo_seq1"'::regclass);
 
 ALTER TABLE ONLY public."CfgStock" ALTER COLUMN "IdCfgStock" SET DEFAULT nextval('public."CfgStock_IdCfgStock_seq"'::regclass);
 
+ALTER TABLE ONLY public."Combos" ALTER COLUMN "IdCombo" SET DEFAULT nextval('public."Combos_IdCombo_seq"'::regclass);
 
---
--- TOC entry 4897 (class 2604 OID 16685)
--- Name: Entradas IdEntrada; Type: DEFAULT; Schema: public; Owner: postgres
---
+ALTER TABLE ONLY public."Configuracion" ALTER COLUMN "IdConfig" SET DEFAULT nextval('public."Configuracion_IdConfig_seq"'::regclass);
+
+ALTER TABLE ONLY public."DetalleCombos" ALTER COLUMN "IdDetalleCombo" SET DEFAULT nextval('public."DetalleCombos_IdDetalleCombo_seq"'::regclass);
+
+ALTER TABLE ONLY public."DetalleEntradas" ALTER COLUMN "IdDetalleEntrada" SET DEFAULT nextval('public."DetalleEntradas_IdDetalleEntrada_seq"'::regclass);
+
+ALTER TABLE ONLY public."DetalleVentas" ALTER COLUMN "IdDetalle" SET DEFAULT nextval('public."DetalleVentas_IdDetalle_seq"'::regclass);
 
 ALTER TABLE ONLY public."Entradas" ALTER COLUMN "IdEntrada" SET DEFAULT nextval('public."Entradas_IdEntrada_seq"'::regclass);
 
+ALTER TABLE ONLY public."Proveedores" ALTER COLUMN "IdProveedor" SET DEFAULT nextval('public."Proveedores_IdProveedor_seq1"'::regclass);
 
---
--- TOC entry 4889 (class 2604 OID 16640)
--- Name: Proveedores IdProveedor; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public."Proveedores" ALTER COLUMN "IdProveedor" SET DEFAULT nextval('public."Proveedores_IdProveedor_seq"'::regclass);
-
-
---
--- TOC entry 4901 (class 2604 OID 16710)
--- Name: Salidas IdSalida; Type: DEFAULT; Schema: public; Owner: postgres
---
+ALTER TABLE ONLY public."PuntosEntrega" ALTER COLUMN "IdPunto" SET DEFAULT nextval('public."PuntosEntrega_IdPunto_seq"'::regclass);
 
 ALTER TABLE ONLY public."Salidas" ALTER COLUMN "IdSalida" SET DEFAULT nextval('public."Salidas_IdSalida_seq"'::regclass);
 
-
---
--- TOC entry 4885 (class 2604 OID 16622)
--- Name: Usuario IdUsuario; Type: DEFAULT; Schema: public; Owner: postgres
---
-
 ALTER TABLE ONLY public."Usuario" ALTER COLUMN "IdUsuario" SET DEFAULT nextval('public."Usuario_IdUsuario_seq"'::regclass);
 
+ALTER TABLE ONLY public."Ventas" ALTER COLUMN "IdVenta" SET DEFAULT nextval('public."Ventas_IdVenta_seq"'::regclass);
 
---
--- TOC entry 5084 (class 0 OID 16650)
--- Dependencies: 226
--- Data for Name: Articulos; Type: TABLE DATA; Schema: public; Owner: postgres
---
+ALTER TABLE ONLY public.bitacora_actividades ALTER COLUMN id SET DEFAULT nextval('public.bitacora_actividades_id_seq'::regclass);
 
-COPY public."Articulos" ("IdArticulo", "CodArticulo", "NomArticulo", "StockActual", "IdProveedor", "IdCfgStock", "BajaLogica", "FechaAlta", "FechaUltMod", "ClaUserMod", "NombrePcMod") FROM stdin;
-2	CLV-001	Clavos 1/4	0	1	2	f	2025-09-29 18:05:27.347125	2025-09-29 18:07:34.355174	3	WEB_APP
-4	LP-004	Lampara	10	1	4	t	2025-09-29 19:12:56.341398	2025-09-29 19:13:12.580392	3	WEB_APP_MOV
-1	LAP-X200	Laptop X200 - Modelo 2024	15	1	1	t	2025-09-29 16:04:04.780346	2025-09-29 19:13:27.559935	3	WEB_APP_MOV
-5	LOP-009	Loseta modelo cajeta	11	1	5	t	2025-09-29 19:33:29.662465	2025-09-29 19:54:57.589164	3	WEB_APP_MOV
-6	NUEVO-008	Nuevo articulo	11	2	6	t	2025-09-29 19:54:40.162427	2025-09-29 19:55:26.045424	3	WEB_APP_MOV
-3	TBL-0004	Tabla roca	5	1	3	f	2025-09-29 18:24:23.702177	2025-09-29 20:01:01.801483	3	WEB_APP
+COPY public."Configuracion" ("IdConfig", "NombreTienda", "Direccion", "Telefono", "MensajeTicket", "RedSocial", "LogoUrl") FROM stdin;
+1	Aura Creativa	Hidalgo	7714306643	¡Gracias por su compra!	@aura.subliminados	Logo01.png
 \.
 
-
---
--- TOC entry 5078 (class 0 OID 16606)
--- Dependencies: 220
--- Data for Name: CfgStock; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public."CfgStock" ("IdCfgStock", "CantidadMaxima", "CantidadMinima", "BajaLogica", "FechaAlta", "FechaUltMod", "ClaUserMod", "NombrePcMod") FROM stdin;
-1	150	5	t	2025-09-29 16:04:04.780346	2025-09-29 16:06:42.860121	3	WEB_APP
-2	150	10	t	2025-09-29 18:05:27.347125	2025-09-29 18:07:28.695	3	WEB_APP
-3	200	10	t	2025-09-29 18:24:23.702177	2025-09-29 18:24:23.702177	3	WEB_APP
-4	100	5	t	2025-09-29 19:12:56.341398	2025-09-29 19:12:56.341398	3	WEB_APP
-5	300	10	t	2025-09-29 19:33:29.662465	2025-09-29 19:33:29.662465	3	WEB_APP
-6	300	10	t	2025-09-29 19:54:40.162427	2025-09-29 19:54:40.162427	3	WEB_APP
+COPY public."Usuario" ("IdUsuario", "Nombre", "Email", "PasswordHash", "Rol", "FechaCreacion", "FechaModificacion", "Activo") FROM stdin;
+1	Admin	admin@auracreativa.com	$2b$10$P8gkV1f30e4x2yLaj9iSd.N2bhUDvS6NAWMpIxtgkhRtSeXRNrL2K	ADMIN	2026-01-12 11:44:39.470051	2026-01-13 13:24:50.122723	t
+2	Patricia Pérez	PatyLu@auracreativa.com	$2b$10$BgQ.JiCUNrsVhYPdRU0GpepewEFbDNfclc2GL.QMFKmKVyBBFdqYu	ADMIN	2026-01-13 13:42:50.894699	\N	t
 \.
 
+SELECT pg_catalog.setval('public."Configuracion_IdConfig_seq"', 1, true);
 
---
--- TOC entry 5086 (class 0 OID 16682)
--- Dependencies: 228
--- Data for Name: Entradas; Type: TABLE DATA; Schema: public; Owner: postgres
---
+SELECT pg_catalog.setval('public."Usuario_IdUsuario_seq"', 2, true);
 
-COPY public."Entradas" ("IdEntrada", "IdArticulo", "Cantidad", "Comentarios", "FechaMovimiento", "BajaLogica", "FechaUltMod", "ClaUserMod", "NombrePcMod") FROM stdin;
-1	1	50	Entrada inicial	2025-09-29 16:29:54.896789	t	2025-09-29 16:29:54.896789	3	WEB_APP_MOV
-2	3	20	Nueva entrada de stock	2025-09-29 18:24:47.085512	t	2025-09-29 18:24:47.085512	3	WEB_APP_MOV
-3	3	20	Nueva entrada de stock	2025-09-29 18:29:44.39406	t	2025-09-29 18:29:44.39406	3	WEB_APP_MOV
-4	1	5	nueva entrada	2025-09-29 18:30:18.783304	t	2025-09-29 18:30:18.783304	3	WEB_APP_MOV
-5	1	5	Ingreso nuevo	2025-09-29 18:34:18.621433	t	2025-09-29 18:34:18.621433	3	WEB_APP_MOV
-6	1	5	Ingreso nuevo	2025-09-29 18:38:20.675809	t	2025-09-29 18:38:20.675809	3	WEB_APP_MOV
-7	1	5	Ingreso nuevo	2025-09-29 18:38:21.924341	t	2025-09-29 18:38:21.924341	3	WEB_APP_MOV
-8	1	20	Movimiento ENTRADA	2025-09-29 18:39:00.200957	t	2025-09-29 18:39:00.200957	3	WEB_APP_MOV
-9	3	10	nueva entrada	2025-09-29 18:57:12.604297	t	2025-09-29 18:57:12.604297	3	WEB_APP_MOV
-10	4	10	entrada nueva	2025-09-29 19:13:12.580392	t	2025-09-29 19:13:12.580392	3	WEB_APP_MOV
-11	5	11	Nueva entrada	2025-09-29 19:54:57.589164	t	2025-09-29 19:54:57.589164	3	WEB_APP_MOV
-12	6	11	Movimiento ENTRADA	2025-09-29 19:55:26.045424	t	2025-09-29 19:55:26.045424	3	WEB_APP_MOV
-\.
-
-
---
--- TOC entry 5082 (class 0 OID 16637)
--- Dependencies: 224
--- Data for Name: Proveedores; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public."Proveedores" ("IdProveedor", "NomProveedor", "RFC", "BajaLogica", "FechaUltMod", "ClaUserMod", "NombrePcMod") FROM stdin;
-1	Proveedor Genérico	GEN000101XYZ	t	2025-09-29 15:45:30.724392	0	SETUP_SCRIPT
-2	Proveedor Genial	RFCINVENTADO	t	2025-09-29 19:53:56.076886	\N	\N
-\.
-
-
---
--- TOC entry 5088 (class 0 OID 16707)
--- Dependencies: 230
--- Data for Name: Salidas; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public."Salidas" ("IdSalida", "IdArticulo", "Cantidad", "Comentarios", "FechaMovimiento", "BajaLogica", "FechaUltMod", "ClaUserMod", "NombrePcMod") FROM stdin;
-1	1	45	Salida a producción	2025-09-29 16:30:55.129055	t	2025-09-29 16:30:55.129055	3	WEB_APP_MOV
-2	1	5	Venta	2025-09-29 18:34:01.720781	t	2025-09-29 18:34:01.720781	3	WEB_APP_MOV
-3	3	40	Movimiento SALIDA	2025-09-29 18:38:36.377221	t	2025-09-29 18:38:36.377221	3	WEB_APP_MOV
-4	1	20	Movimiento SALIDA	2025-09-29 18:38:53.931307	t	2025-09-29 18:38:53.931307	3	WEB_APP_MOV
-5	3	5	venta	2025-09-29 19:02:02.692499	t	2025-09-29 19:02:02.692499	3	WEB_APP_MOV
-6	1	5	venta	2025-09-29 19:13:27.559935	t	2025-09-29 19:13:27.559935	3	WEB_APP_MOV
-\.
-
-
---
--- TOC entry 5080 (class 0 OID 16619)
--- Dependencies: 222
--- Data for Name: Usuario; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public."Usuario" ("IdUsuario", "Nombre", "Email", "PasswordHash", "Rol", "BajaLogica", "FechaUltMod", "ClaUserMod", "NombrePcMod") FROM stdin;
-3	Admin Catalogo	admin@catalogo.com	$2b$10$R5FaFwEkIBpjXKsryfaUD.0PfNYF3Az0K/CzBWwZe7.bZr44dS17O	ADMIN	t	2025-09-29 15:49:46.683431	1	SERVIDOR_REG
-\.
-
-
---
--- TOC entry 5101 (class 0 OID 0)
--- Dependencies: 225
--- Name: Articulos_IdArticulo_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public."Articulos_IdArticulo_seq"', 6, true);
-
-
---
--- TOC entry 5102 (class 0 OID 0)
--- Dependencies: 219
--- Name: CfgStock_IdCfgStock_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public."CfgStock_IdCfgStock_seq"', 6, true);
-
-
---
--- TOC entry 5103 (class 0 OID 0)
--- Dependencies: 227
--- Name: Entradas_IdEntrada_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public."Entradas_IdEntrada_seq"', 12, true);
-
-
---
--- TOC entry 5104 (class 0 OID 0)
--- Dependencies: 223
--- Name: Proveedores_IdProveedor_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public."Proveedores_IdProveedor_seq"', 2, true);
-
-
---
--- TOC entry 5105 (class 0 OID 0)
--- Dependencies: 229
--- Name: Salidas_IdSalida_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public."Salidas_IdSalida_seq"', 6, true);
-
-
---
--- TOC entry 5106 (class 0 OID 0)
--- Dependencies: 221
--- Name: Usuario_IdUsuario_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('public."Usuario_IdUsuario_seq"', 3, true);
-
-
---
--- TOC entry 4916 (class 2606 OID 16665)
--- Name: Articulos Articulos_CodArticulo_key; Type: CONSTRAINT; Schema: public; Owner: postgres
---
 
 ALTER TABLE ONLY public."Articulos"
-    ADD CONSTRAINT "Articulos_CodArticulo_key" UNIQUE ("CodArticulo");
-
-
---
--- TOC entry 4918 (class 2606 OID 16663)
--- Name: Articulos Articulos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
+    ADD CONSTRAINT "Articulos_CodArticulo_key1" UNIQUE ("CodArticulo");
 
 ALTER TABLE ONLY public."Articulos"
-    ADD CONSTRAINT "Articulos_pkey" PRIMARY KEY ("IdArticulo");
-
-
---
--- TOC entry 4906 (class 2606 OID 16617)
--- Name: CfgStock CfgStock_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
+    ADD CONSTRAINT "Articulos_pkey1" PRIMARY KEY ("IdArticulo");
 
 ALTER TABLE ONLY public."CfgStock"
     ADD CONSTRAINT "CfgStock_pkey" PRIMARY KEY ("IdCfgStock");
 
+ALTER TABLE ONLY public."Combos"
+    ADD CONSTRAINT "Combos_pkey" PRIMARY KEY ("IdCombo");
 
---
--- TOC entry 4920 (class 2606 OID 16695)
--- Name: Entradas Entradas_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
+ALTER TABLE ONLY public."Configuracion"
+    ADD CONSTRAINT "Configuracion_pkey" PRIMARY KEY ("IdConfig");
+
+ALTER TABLE ONLY public."DetalleCombos"
+    ADD CONSTRAINT "DetalleCombos_pkey" PRIMARY KEY ("IdDetalleCombo");
+
+ALTER TABLE ONLY public."DetalleEntradas"
+    ADD CONSTRAINT "DetalleEntradas_pkey" PRIMARY KEY ("IdDetalleEntrada");
+
+ALTER TABLE ONLY public."DetalleVentas"
+    ADD CONSTRAINT "DetalleVentas_pkey" PRIMARY KEY ("IdDetalle");
 
 ALTER TABLE ONLY public."Entradas"
     ADD CONSTRAINT "Entradas_pkey" PRIMARY KEY ("IdEntrada");
 
-
---
--- TOC entry 4912 (class 2606 OID 16648)
--- Name: Proveedores Proveedores_RFC_key; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
 ALTER TABLE ONLY public."Proveedores"
-    ADD CONSTRAINT "Proveedores_RFC_key" UNIQUE ("RFC");
+    ADD CONSTRAINT "Proveedores_pkey1" PRIMARY KEY ("IdProveedor");
 
-
---
--- TOC entry 4914 (class 2606 OID 16646)
--- Name: Proveedores Proveedores_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public."Proveedores"
-    ADD CONSTRAINT "Proveedores_pkey" PRIMARY KEY ("IdProveedor");
-
-
---
--- TOC entry 4922 (class 2606 OID 16720)
--- Name: Salidas Salidas_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
+ALTER TABLE ONLY public."PuntosEntrega"
+    ADD CONSTRAINT "PuntosEntrega_pkey" PRIMARY KEY ("IdPunto");
 
 ALTER TABLE ONLY public."Salidas"
     ADD CONSTRAINT "Salidas_pkey" PRIMARY KEY ("IdSalida");
 
-
---
--- TOC entry 4908 (class 2606 OID 16635)
--- Name: Usuario Usuario_Email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
 ALTER TABLE ONLY public."Usuario"
     ADD CONSTRAINT "Usuario_Email_key" UNIQUE ("Email");
-
-
---
--- TOC entry 4910 (class 2606 OID 16633)
--- Name: Usuario Usuario_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
 
 ALTER TABLE ONLY public."Usuario"
     ADD CONSTRAINT "Usuario_pkey" PRIMARY KEY ("IdUsuario");
 
+ALTER TABLE ONLY public."Ventas"
+    ADD CONSTRAINT "Ventas_pkey" PRIMARY KEY ("IdVenta");
 
---
--- TOC entry 4923 (class 2606 OID 16676)
--- Name: Articulos Articulos_ClaUserMod_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public."Articulos"
-    ADD CONSTRAINT "Articulos_ClaUserMod_fkey" FOREIGN KEY ("ClaUserMod") REFERENCES public."Usuario"("IdUsuario");
-
-
---
--- TOC entry 4924 (class 2606 OID 16671)
--- Name: Articulos Articulos_IdCfgStock_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
+ALTER TABLE ONLY public.bitacora_actividades
+    ADD CONSTRAINT bitacora_actividades_pkey PRIMARY KEY (id);
 
 ALTER TABLE ONLY public."Articulos"
     ADD CONSTRAINT "Articulos_IdCfgStock_fkey" FOREIGN KEY ("IdCfgStock") REFERENCES public."CfgStock"("IdCfgStock");
 
-
---
--- TOC entry 4925 (class 2606 OID 16666)
--- Name: Articulos Articulos_IdProveedor_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
 ALTER TABLE ONLY public."Articulos"
     ADD CONSTRAINT "Articulos_IdProveedor_fkey" FOREIGN KEY ("IdProveedor") REFERENCES public."Proveedores"("IdProveedor");
 
+ALTER TABLE ONLY public."Articulos"
+    ADD CONSTRAINT "Articulos_IdUsuarioCreacion_fkey" FOREIGN KEY ("IdUsuarioCreacion") REFERENCES public."Usuario"("IdUsuario");
 
---
--- TOC entry 4926 (class 2606 OID 16701)
--- Name: Entradas Entradas_ClaUserMod_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
+ALTER TABLE ONLY public."Combos"
+    ADD CONSTRAINT "Combos_IdUsuarioCreacion_fkey" FOREIGN KEY ("IdUsuarioCreacion") REFERENCES public."Usuario"("IdUsuario");
+
+ALTER TABLE ONLY public."DetalleCombos"
+    ADD CONSTRAINT "DetalleCombos_IdCombo_fkey" FOREIGN KEY ("IdCombo") REFERENCES public."Combos"("IdCombo");
+
+ALTER TABLE ONLY public."DetalleEntradas"
+    ADD CONSTRAINT "DetalleEntradas_IdEntrada_fkey" FOREIGN KEY ("IdEntrada") REFERENCES public."Entradas"("IdEntrada");
+
+ALTER TABLE ONLY public."DetalleVentas"
+    ADD CONSTRAINT "DetalleVentas_IdCombo_fkey" FOREIGN KEY ("IdCombo") REFERENCES public."Combos"("IdCombo");
+
+ALTER TABLE ONLY public."DetalleVentas"
+    ADD CONSTRAINT "DetalleVentas_IdVenta_fkey" FOREIGN KEY ("IdVenta") REFERENCES public."Ventas"("IdVenta");
 
 ALTER TABLE ONLY public."Entradas"
-    ADD CONSTRAINT "Entradas_ClaUserMod_fkey" FOREIGN KEY ("ClaUserMod") REFERENCES public."Usuario"("IdUsuario");
-
-
---
--- TOC entry 4927 (class 2606 OID 16696)
--- Name: Entradas Entradas_IdArticulo_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
+    ADD CONSTRAINT "Entradas_IdProveedor_fkey" FOREIGN KEY ("IdProveedor") REFERENCES public."Proveedores"("IdProveedor");
 
 ALTER TABLE ONLY public."Entradas"
-    ADD CONSTRAINT "Entradas_IdArticulo_fkey" FOREIGN KEY ("IdArticulo") REFERENCES public."Articulos"("IdArticulo");
+    ADD CONSTRAINT "Entradas_IdUsuarioCreacion_fkey" FOREIGN KEY ("IdUsuarioCreacion") REFERENCES public."Usuario"("IdUsuario");
 
+ALTER TABLE ONLY public."Ventas"
+    ADD CONSTRAINT "Ventas_IdPuntoEntrega_fkey" FOREIGN KEY ("IdPuntoEntrega") REFERENCES public."PuntosEntrega"("IdPunto");
 
---
--- TOC entry 4928 (class 2606 OID 16726)
--- Name: Salidas Salidas_ClaUserMod_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
+ALTER TABLE ONLY public."Ventas"
+    ADD CONSTRAINT "Ventas_IdUsuario_fkey" FOREIGN KEY ("IdUsuario") REFERENCES public."Usuario"("IdUsuario");
 
-ALTER TABLE ONLY public."Salidas"
-    ADD CONSTRAINT "Salidas_ClaUserMod_fkey" FOREIGN KEY ("ClaUserMod") REFERENCES public."Usuario"("IdUsuario");
+ALTER TABLE ONLY public.bitacora_actividades
+    ADD CONSTRAINT bitacora_actividades_usuario_id_fkey FOREIGN KEY (usuario_id) REFERENCES public."Usuario"("IdUsuario") ON DELETE SET NULL;
 
+REVOKE USAGE ON SCHEMA public FROM PUBLIC;
+GRANT ALL ON SCHEMA public TO PUBLIC;
 
---
--- TOC entry 4929 (class 2606 OID 16721)
--- Name: Salidas Salidas_IdArticulo_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public."Salidas"
-    ADD CONSTRAINT "Salidas_IdArticulo_fkey" FOREIGN KEY ("IdArticulo") REFERENCES public."Articulos"("IdArticulo");
-
-
---
--- TOC entry 5094 (class 0 OID 0)
--- Dependencies: 5
--- Name: SCHEMA public; Type: ACL; Schema: -; Owner: pg_database_owner
---
-
-GRANT ALL ON SCHEMA public TO nihon_user;
-
-
--- Completed on 2025-09-29 20:30:51
-
---
--- PostgreSQL database dump complete
---
-
-\unrestrict J5lxg1DHKLlPbgt6aMEssVp0dJzdqiInIs8CEZ5gtzytodT06m7Zd8pD39rxVGW
-
+\unrestrict Yy6dbFY9iY6Gxe0TPe02KxotOiy58wKCYRyorvgQGqAeEfim5gcQGZfkgVz6zvO

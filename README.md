@@ -1,147 +1,155 @@
-# Catálogo Inventario Fullstack
+# POS Aura Creativa 🛒
 
-Este repositorio contiene una aplicación completa para la gestión de inventario, proveedores y movimientos de stock. El proyecto está dividido en dos partes:
+Sistema integral de Punto de Venta (POS) y Gestión de Inventarios diseñado para negocios de personalización, insumos y retail. El proyecto permite gestionar ventas, controlar stock en tiempo real, generar tickets de venta en PDF y administrar catálogos de productos y combos.
 
-- **Backend:** API RESTful construida con Node.js, Express y PostgreSQL.
-- **Frontend:** Interfaz de usuario moderna y minimalista desarrollada con Vue 3, Vite y Bootstrap 5.
-
----
-
-## Descripción General
-
-### Backend
-- **Ubicación:** `/backend`
-- **Tecnologías:** Node.js, Express, PostgreSQL, Socket.IO
-- **Funcionalidad:**
-  - CRUD de Artículos
-  - CRUD de Proveedores
-  - Registro y consulta de Movimientos de inventario
-  - Autenticación JWT
-  - Actualización en tiempo real de stock mediante Socket.IO
-
-### Frontend
-- **Ubicación:** `/frontend`
-- **Tecnologías:** Vue 3, Vite, Bootstrap 5, Pinia
-- **Funcionalidad:**
-  - Visualización y gestión de artículos, proveedores y movimientos
-  - Registro y edición de proveedores y artículos
-  - Validación de formularios y alertas
-  - Navegación protegida por autenticación
-  - Interfaz minimalista y responsiva
+El sistema está dividido en dos partes principales:
+- **Backend:** API RESTful robusta construida con Node.js y PostgreSQL.
+- **Frontend:** Interfaz de usuario reactiva y moderna desarrollada con Vue 3 y Vite.
 
 ---
 
-## Cómo levantar el proyecto
+## 🚀 Características Principales
 
-### 1. Backend
+### 📦 Gestión de Inventario
+- CRUD completo de Artículos con soporte para **subida de imágenes**.
+- Gestión de variantes (Tallas, Colores, Categorías).
+- **Combos/Paquetes:** Lógica avanzada que descuenta inventario basado en recetas de insumos.
+- Alertas visuales de stock bajo.
 
-#### Requisitos
-- Node.js >= 16
-- PostgreSQL
+### 💰 Punto de Venta (POS)
+- Interfaz de ventas optimizada con buscador y filtros visuales.
+- Carrito de compras dinámico.
+- Selección de **Puntos de Entrega** (con integración de links a Google Maps).
+- **Tickets de Venta:** Generación automática de PDF (formato térmico 80mm) con logo, detalles y código QR de ubicación.
 
-#### Instalación y configuración
+### 🔐 Seguridad y Administración
+- Autenticación segura mediante **JWT (JSON Web Tokens)**.
+- Bitácora de actividades (Logs de seguridad para auditoría).
+- Gestión de Proveedores y Compras (Entradas de almacén).
+- Configuración dinámica de la tienda (Logo, Redes Sociales, Mensajes de ticket).
+
+---
+
+## 🛠 Tecnologías Utilizadas
+
+### Backend (`/backend`)
+- **Core:** Node.js, Express.js.
+- **Base de Datos:** PostgreSQL (`pg`).
+- **Archivos y PDF:** Multer (imágenes), PDFKit (tickets).
+- **Utilidades:** QRCode (generación de códigos), JWT, Cors, Dotenv.
+
+### Frontend (`/frontend`)
+- **Core:** Vue 3 (Composition API), Vite.
+- **Estado y Rutas:** Pinia, Vue Router.
+- **UI/UX:** Bootstrap 5, FontAwesome, SweetAlert2.
+- **Conexión:** Axios (Implementando Patrón de Servicios).
+
+---
+
+## ⚙️ Instalación y Configuración
+
+Sigue estos pasos para levantar el proyecto desde cero.
+
+### 1. Base de Datos (PostgreSQL)
+1. Crea una base de datos llamada `pos_auracreativa` (o el nombre de tu preferencia).
+2. Ejecuta el script SQL incluido en `backend/db_init.sql` para generar las tablas y relaciones.
+
+---
+
+### 2. Backend
+
 1. Ve al directorio del backend:
-   ```sh
+   ```bash
    cd backend
    ```
+
 2. Instala las dependencias:
-   ```sh
+   ```bash
    npm install
    ```
-3. Configura la base de datos:
-   - Crea una base de datos PostgreSQL.
-   - Ajusta la configuración en `backend/config/db.js` con tus credenciales.
-   - Ejecuta el script `backend/db_init.sql` para crear las tablas y cargar datos iniciales:
-     ```sh
-     psql -U tu_usuario -d tu_basededatos -f backend/db_init.sql
-     ```
-   - Si usas otro cliente, puedes importar el archivo SQL manualmente.
+
+3. Configuración de Entorno:
+   Crea un archivo .env en la carpeta backend/ con las siguientes variables (ajusta tus credenciales):
+   ```bash
+   PORT=3001
+   DB_USER=tu_usuario_postgres
+   DB_HOST=localhost
+   DB_NAME=pos_auracreativa
+   DB_PASSWORD=tu_contraseña
+   DB_PORT=5432
+   JWT_SECRET=palabra_super_secreta_para_tokens
+   ```
+
 4. Inicia el servidor:
-   ```sh
+   ```bash
    node app.js
-   ```
-   El backend estará disponible en `http://localhost:3001`.
-
-### 2. Frontend
-
-#### Requisitos
-- Node.js >= 16
-
-#### Instalación y ejecución
-1. Ve al directorio del frontend:
-   ```sh
-   cd frontend
-   ```
-2. Instala las dependencias:
-   ```sh
-   npm install
-   ```
-3. Inicia la aplicación:
-   ```sh
+   # O si usas nodemon:
    npm run dev
    ```
-   El frontend estará disponible en `http://localhost:5173` (o el puerto que indique Vite).
 
 ---
 
-## Estructura de carpetas
+### 3. Frontend
 
-```
-catalogo-fullstack/
-├── backend/
-│   ├── app.js
-│   ├── package.json
-│   ├── config/
-│   ├── controllers/
-│   ├── middlewares/
-│   ├── models/
-│   ├── routes/
-│   └── utils/
-└── frontend/
-    ├── index.html
-    ├── package.json
-    ├── vite.config.js
-    ├── public/
-    └── src/
-        ├── App.vue
-        ├── main.js
-        ├── style.css
-        ├── assets/
-        ├── components/
-        ├── router/
-        ├── services/
-        ├── stores/
-        └── views/
-```
+1. Ve al directorio del frontend:
+   ```bash
+   cd frontend
+   ```
 
+2. Instala las dependencias:
+   ```bash
+   npm install
+   ```
+
+3. Configuración de Entorno: Crea un archivo .env en la carpeta frontend/ para definir la URL de la API:
+   ```bash
+   VITE_API_URL=http://localhost:3001/api
+   ```
+
+4. Inicia la aplicación:
+   ```bash
+   npm run dev
+   ```
 ---
-
-## Descripción de carpetas principales
-
-### Backend
-- **controllers/**: Lógica de negocio para cada entidad (artículos, proveedores, movimientos, autenticación).
-- **routes/**: Definición de rutas y endpoints de la API.
-- **middlewares/**: Funciones de autenticación y validación.
-- **config/**: Configuración de la base de datos.
-- **utils/**: Utilidades varias (por ejemplo, checker de sockets).
-
-### Frontend
-- **views/**: Vistas principales de la app (Artículos, Proveedores, Movimientos, Login).
-- **components/**: Componentes reutilizables (Navbar, etc).
-- **services/**: Lógica para consumir la API del backend.
-- **stores/**: Estado global (Pinia, autenticación).
-- **router/**: Definición de rutas y navegación.
-- **assets/**: Imágenes y recursos estáticos.
-
+## 📂 Estructura del Proyecto
+   ```Plaintext
+   POS_AuraCreativa/
+   ├── backend/
+   │   ├── config/          # Conexión a Base de Datos
+   │   ├── controllers/     # Lógica de negocio (Ventas, Artículos, Tickets...)
+   │   ├── middlewares/     # Autenticación y validaciones
+   │   ├── public/uploads/  # Almacenamiento de imágenes de productos
+   │   ├── routes/          # Endpoints de la API
+   │   ├── utils/           # Herramientas (Logger, etc.)
+   │   ├── app.js           # Archivo principal
+   │   └── db_init.sql      # Script inicial SQL
+   └── frontend/
+      ├── src/
+      │   ├── assets/      # Recursos estáticos
+      │   ├── components/  # Componentes reutilizables
+      │   ├── router/      # Configuración de rutas
+      │   ├── services/    # Lógica de conexión a API (Axios)
+      │   ├── stores/      # Estado global (Pinia)
+      │   └── views/       # Vistas principales (POS, Inventario, Config)
+      └── index.html
+   ```
 ---
+# 📢 Bitácora de Actualizaciones (Changelog)
+**[v1.0.0] - Estructura Inicial Limpia**
 
-## Notas adicionales
-- El sistema requiere autenticación para acceder a las vistas principales.
-- El navbar es global y permite navegar entre todas las secciones.
-- El backend y frontend deben estar corriendo simultáneamente para el funcionamiento completo.
-- Si tienes dudas sobre la estructura de la base de datos, revisa los controladores y modelos en el backend.
+**Fecha:** 19/01/2026 **Autor:** Fernando Pérez S.
 
----
+**Módulos Completados:**
+
+- Login y Autenticación JWT.
+
+- Catálogo de Artículos (con carga de Imágenes).
+
+- Punto de Venta (POS) con carrito y cálculo de totales.
+
+- Generación de Tickets PDF (80mm) con QR dinámico de ubicación.
+
+- Catálogo de Puntos de Entrega.
 
 ## Autor
-Desarrollado por Patricia Pérez.
+Fernando Pérez S.

@@ -1,13 +1,13 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import axios from 'axios';
-import { useAuthStore } from '@/stores/auth';
+import usuarioService from '@/services/usuarioService';
 import Swal from 'sweetalert2';
 
 const route = useRoute();
 const router = useRouter();
-const authStore = useAuthStore();
+// const authStore = useAuthStore(); // Eliminado
+
 const isEditing = computed(() => !!route.params.id);
 const loading = ref(false);
 const saving = ref(false);
@@ -17,16 +17,12 @@ const usuario = ref({
     password: '',
     rol: ''
 });
-const api = axios.create({
-    baseURL: 'http://localhost:3001/api',
-    headers: { Authorization: `Bearer ${authStore.token}` }
-});
 
 onMounted(async () => {
     if (isEditing.value) {
         loading.value = true;
         try {
-            const { data } = await api.get(`/usuarios/${route.params.id}`);
+            const { data } = await usuarioService.getUsuario(route.params.id);
             usuario.value = {
                 nombre: data.Nombre,
                 email: data.Email,
@@ -51,12 +47,10 @@ const guardarUsuario = async () => {
     if (!isEditing.value && !usuario.value.password) {
          return Swal.fire('Falta información', 'La contraseña es obligatoria para nuevos usuarios.', 'warning');
     }
-
     saving.value = true;
     try {
         if (isEditing.value) {
-            // EDITAR
-            await api.put(`/usuarios/${route.params.id}`, usuario.value);
+            await usuarioService.updateUsuario(route.params.id, usuario.value);
             await Swal.fire({
                 icon: 'success',
                 title: '¡Actualizado!',
@@ -65,8 +59,7 @@ const guardarUsuario = async () => {
                 showConfirmButton: false
             });
         } else {
-            // CREAR
-            await api.post('/usuarios', usuario.value);
+            await usuarioService.createUsuario(usuario.value);
             await Swal.fire({
                 icon: 'success',
                 title: '¡Creado!',

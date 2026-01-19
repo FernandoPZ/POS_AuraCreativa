@@ -1,20 +1,14 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useAuthStore } from '@/stores/auth';
-import axios from 'axios';
+import bitacoraService from '@/services/bitacoraService';
 import Swal from 'sweetalert2';
 
 const logs = ref([]);
 const loading = ref(false);
-const authStore = useAuthStore();
-const api = axios.create({
-    baseURL: 'http://localhost:3001/api',
-    headers: { Authorization: `Bearer ${authStore.token}` }
-});
 const loadBitacora = async () => {
     loading.value = true;
     try {
-        const { data } = await api.get('/bitacora');
+        const { data } = await bitacoraService.getBitacora();
         logs.value = data;
     } catch (error) {
         console.error(error);
@@ -34,7 +28,6 @@ const formatDate = (dateString) => {
         hour: '2-digit', minute: '2-digit'
     });
 };
-
 const getActionBadge = (accion) => {
     const act = accion?.toUpperCase() || '';
     if (act.includes('LOGIN')) return 'bg-info text-dark';

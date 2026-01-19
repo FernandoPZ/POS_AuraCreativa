@@ -1,13 +1,12 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
-import axios from 'axios';
+import comboService from '@/services/comboService';
+import articuloService from '@/services/articuloService';
 import Swal from 'sweetalert2';
 
 const route = useRoute();
 const router = useRouter();
-const authStore = useAuthStore();
 const isEditing = computed(() => !!route.params.id);
 const itemId = computed(() => route.params.id);
 const articulos = ref([]);
@@ -23,29 +22,25 @@ const ingredienteActual = reactive({
     IdArticulo: '',
     Cantidad: 1
 });
-const api = axios.create({
-    baseURL: 'http://localhost:3001/api',
-    headers: { Authorization: `Bearer ${authStore.token}` }
-});
 
 onMounted(async () => {
     loading.value = true;
     try {
-        const artRes = await api.get('/articulos');
-        articulos.value = artRes.data;
-
+        const { data: listaArticulos } = await articuloService.getArticulos();
+        articulos.value = listaArticulos;
         if (isEditing.value) {
-            const { data } = await api.get(`/combos/${itemId.value}`);
+            const { data } = await comboService.getCombo(itemId.value);
             form.Nombre = data.Nombre;
             form.Codigo = data.Codigo;
             form.Precio = Number(data.Precio);
-            // Mapear ingredientes
-            receta.value = data.ingredientes.map(i => ({
-                IdArticulo: i.IdArticulo,
-                NomArticulo: i.NomArticulo,
-                NombreUnidad: i.NombreUnidad || 'Pza',
-                Cantidad: i.Cantidad
-            }));
+            if (data.ingredientes) {
+                receta.value = data.ingredientes.map(i => ({
+                    IdArticulo: i.IdArticulo,
+                    NomArticulo: i.NomArticulo,
+                    NombreUnidad: i.NombreUnidad || 'Pza',
+                    Cantidad: i.Cantidad
+                }));
+            }
         }
     } catch (error) {
         console.error(error);
@@ -58,6 +53,7 @@ onMounted(async () => {
 const agregarIngrediente = () => {
     if (!ingredienteActual.IdArticulo) return;
     const art = articulos.value.find(a => a.IdArticulo === ingredienteActual.IdArticulo);
+    if (!art) return;
     const existe = receta.value.find(r => r.IdArticulo === art.IdArticulo);
     if (existe) {
         existe.Cantidad += ingredienteActual.Cantidad;
@@ -72,28 +68,24 @@ const agregarIngrediente = () => {
     ingredienteActual.IdArticulo = '';
     ingredienteActual.Cantidad = 1;
 };
-
 const eliminarIngrediente = (index) => {
     receta.value.splice(index, 1);
 };
-
 const guardarCombo = async () => {
     if (!form.Nombre || !form.Precio || receta.value.length === 0) {
         return Swal.fire('Faltan datos', 'Nombre, Precio e Ingredientes son obligatorios.', 'warning');
     }
-
     saving.value = true;
     try {
         const payload = {
             ...form,
             Ingredientes: receta.value
         };
-
         if (isEditing.value) {
-            await api.put(`/combos/${itemId.value}`, payload);
+            await comboService.updateCombo(itemId.value, payload);
             Swal.fire('¡Actualizado!', 'El combo se modificó correctamente.', 'success');
         } else {
-            await api.post('/combos', payload);
+            await comboService.createCombo(payload);
             Swal.fire('¡Creado!', 'Nuevo combo registrado.', 'success');
         }
         router.push('/combos');

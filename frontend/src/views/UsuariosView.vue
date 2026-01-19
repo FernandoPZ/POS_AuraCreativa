@@ -1,22 +1,14 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import axios from 'axios';
-import { useAuthStore } from '@/stores/auth';
+import { ref, onMounted } from 'vue';
+import usuarioService from '@/services/usuarioService';
 import Swal from 'sweetalert2';
 
 const usuarios = ref([]);
 const loading = ref(false);
-const authStore = useAuthStore();
-const api = axios.create({
-    baseURL: 'http://localhost:3001/api',
-    headers: { Authorization: `Bearer ${authStore.token}` }
-});
-
-// Cargar Usuarios
 const loadUsuarios = async () => {
     loading.value = true;
     try {
-        const { data } = await api.get('/usuarios');
+        const { data } = await usuarioService.getUsuarios();
         usuarios.value = data;
     } catch (error) {
         console.error(error);
@@ -29,8 +21,6 @@ const loadUsuarios = async () => {
         loading.value = false;
     }
 };
-
-// Eliminar Usuario
 const confirmDelete = (user) => {
     Swal.fire({
         title: '¿Estás seguro?',
@@ -44,7 +34,7 @@ const confirmDelete = (user) => {
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {
-                await api.delete(`/usuarios/${user.IdUsuario}`);
+                await usuarioService.deleteUsuario(user.IdUsuario);
                 Swal.fire({
                     icon: 'success',
                     title: 'Eliminado',
@@ -155,7 +145,6 @@ const formatDate = (dateString) => {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
-
 .avatar-circle {
     width: 40px;
     height: 40px;
@@ -165,7 +154,6 @@ const formatDate = (dateString) => {
     justify-content: center;
     font-size: 1.2rem;
 }
-
 [data-bs-theme="dark"] .bg-light {
     background-color: #2c2c2c !important;
 }

@@ -1,20 +1,14 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useAuthStore } from '@/stores/auth';
-import axios from 'axios';
+import comboService from '@/services/comboService';
 import Swal from 'sweetalert2';
 
 const combos = ref([]);
 const loading = ref(false);
-const authStore = useAuthStore();
-const api = axios.create({
-    baseURL: 'http://localhost:3001/api',
-    headers: { Authorization: `Bearer ${authStore.token}` }
-});
 const loadCombos = async () => {
     loading.value = true;
     try {
-        const { data } = await api.get('/combos');
+        const { data } = await comboService.getCombos();
         combos.value = data;
     } catch (error) {
         console.error(error);
@@ -35,7 +29,7 @@ const confirmDelete = (combo) => {
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {
-                await api.delete(`/combos/${combo.IdCombo}`);
+                await comboService.deleteCombo(combo.IdCombo);
                 Swal.fire('Eliminado', 'El combo ha sido dado de baja.', 'success');
                 loadCombos();
             } catch (error) {
@@ -46,7 +40,6 @@ const confirmDelete = (combo) => {
 };
 
 onMounted(loadCombos);
-
 </script>
 
 <template>

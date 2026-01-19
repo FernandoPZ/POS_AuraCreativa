@@ -5,7 +5,7 @@ const ticketController = require('../controllers/ticketController');
 const protect = require('../middlewares/authMiddleware');
 
 router.get('/', protect, ventasController.getVentas);
-router.get('/:id/detalles', protect, ventasController.getVentaDetalles);
+router.get('/:id', protect, ventasController.getVentaDetalles);
 router.post('/', protect, ventasController.crearVenta);
 router.get('/:id/ticket', protect, ticketController.generarTicket);
 

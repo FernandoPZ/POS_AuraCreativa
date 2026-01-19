@@ -1,14 +1,12 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
-import { useAuthStore } from '@/stores/auth';
-import axios from 'axios';
+import puntosEntregaService from '@/services/puntosEntregaService';
 import Swal from 'sweetalert2';
 import { Modal } from 'bootstrap';
 
 const puntos = ref([]);
 const loading = ref(false);
 const saving = ref(false);
-const authStore = useAuthStore();
 let modalInstance = null;
 const isEditing = ref(false);
 const form = reactive({
@@ -16,14 +14,10 @@ const form = reactive({
     NombrePunto: '',
     LinkGoogleMaps: ''
 });
-const api = axios.create({
-    baseURL: 'http://localhost:3001/api',
-    headers: { Authorization: `Bearer ${authStore.token}` }
-});
 const loadPuntos = async () => {
     loading.value = true;
     try {
-        const { data } = await api.get('/puntos-entrega');
+        const { data } = await puntosEntregaService.getPuntos();
         puntos.value = data;
     } catch (error) {
         Swal.fire('Error', 'No se pudieron cargar los puntos.', 'error');
@@ -48,17 +42,15 @@ const openModal = (punto = null) => {
     }
     modalInstance.show();
 };
-
-// Guardar
 const savePunto = async () => {
     if (!form.NombrePunto) return Swal.fire('Atención', 'El nombre es obligatorio', 'warning');
     saving.value = true;
     try {
         if (isEditing.value) {
-            await api.put(`/puntos-entrega/${form.IdPunto}`, form);
+            await puntosEntregaService.updatePunto(form.IdPunto, form);
             Swal.fire({ icon: 'success', title: 'Actualizado', timer: 1500, showConfirmButton: false });
         } else {
-            await api.post('/puntos-entrega', form);
+            await puntosEntregaService.createPunto(form);
             Swal.fire({ icon: 'success', title: 'Creado', timer: 1500, showConfirmButton: false });
         }
         modalInstance.hide();
@@ -69,8 +61,6 @@ const savePunto = async () => {
         saving.value = false;
     }
 };
-
-// Eliminar
 const confirmDelete = (punto) => {
     Swal.fire({
         title: '¿Eliminar?',
@@ -82,7 +72,7 @@ const confirmDelete = (punto) => {
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {
-                await api.delete(`/puntos-entrega/${punto.IdPunto}`);
+                await puntosEntregaService.deletePunto(punto.IdPunto);
                 Swal.fire('Eliminado', '', 'success');
                 loadPuntos();
             } catch (error) {

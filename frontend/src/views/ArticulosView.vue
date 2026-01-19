@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
-import axios from 'axios';
+import articuloService from '@/services/articuloService';
 import Swal from 'sweetalert2';
 import { Modal } from 'bootstrap';
 
@@ -10,26 +10,17 @@ const loading = ref(false);
 const authStore = useAuthStore();
 const articuloSeleccionado = ref({});
 let modalDetalleInstance = null;
-const api = axios.create({
-    baseURL: 'http://localhost:3001/api',
-    headers: { Authorization: `Bearer ${authStore.token}` }
-});
 const totalStock = computed(() => {
     return articulos.value.reduce((sum, item) => sum + Number(item.StockActual), 0);
 });
 const loadArticulos = async () => {
     loading.value = true;
     try {
-        const { data } = await api.get('/articulos');
+        const { data } = await articuloService.getArticulos();
         articulos.value = data;
     } catch (err) {
         console.error(err);
-        if (err.response?.status === 401) {
-             Swal.fire('Sesión Expirada', 'Por favor inicie sesión nuevamente', 'warning');
-             authStore.logout();
-        } else {
-            Swal.fire('Error', 'No se pudo cargar el inventario.', 'error');
-        }
+        Swal.fire('Error', 'No se pudo cargar el inventario.', 'error');
     } finally {
         loading.value = false;
     }
@@ -58,11 +49,12 @@ const confirmDelete = (articulo) => {
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {
-                await api.delete(`/articulos/${articulo.IdArticulo}`);
+                await articuloService.deleteArticulo(articulo.IdArticulo);
                 Swal.fire({ icon: 'success', title: 'Eliminado', timer: 1500, showConfirmButton: false });
                 loadArticulos(); 
             } catch (error) {
-                Swal.fire('Error', error.response?.data?.msg || 'No se pudo eliminar.', 'error');
+                const msg = error.response?.data?.msg || 'No se pudo eliminar.';
+                Swal.fire('Error', msg, 'error');
             }
         }
     });

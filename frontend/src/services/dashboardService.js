@@ -1,17 +1,7 @@
-import axios from 'axios';
-import { useAuthStore } from '@/stores/auth';
-
-const API_URL = 'http://localhost:3001/api/dashboard';
-
-const getAuthHeader = () => {
-  const authStore = useAuthStore();
-  return {
-    headers: { Authorization: `Bearer ${authStore.token}` }
-  };
-};
+import api from './api';
 
 export default {
-  getResumen() {
-    return axios.get(API_URL, getAuthHeader()).then(res => res.data);
-  }
+    getResumen() {
+        return api.get('/dashboard'); 
+    }
 };

@@ -1,14 +1,13 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
-import axios from 'axios';
+import articuloService from '@/services/articuloService';
+import comboService from '@/services/comboService';
+import puntosEntregaService from '@/services/puntosEntregaService';
+import ventaService from '@/services/ventaService';
 import Swal from 'sweetalert2';
 
 const authStore = useAuthStore();
-const api = axios.create({
-    baseURL: 'http://localhost:3001/api',
-    headers: { Authorization: `Bearer ${authStore.token}` }
-});
 const loading = ref(true);
 const procesando = ref(false);
 const articulos = ref([]);
@@ -23,14 +22,16 @@ const datosVenta = reactive({
     IdPuntoEntrega: '',
     ClienteNombre: ''
 });
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const BASE_URL = API_URL.replace('/api', ''); 
 
 onMounted(async () => {
     loading.value = true;
     try {
         const [artRes, comboRes, puntosRes] = await Promise.all([
-            api.get('/articulos'),
-            api.get('/combos'),
-            api.get('/puntos-entrega')
+            articuloService.getArticulos(),
+            comboService.getCombos(),
+            puntosEntregaService.getPuntos()
         ]);
         articulos.value = artRes.data;
         combos.value = comboRes.data;
@@ -145,7 +146,7 @@ const procesarVenta = async () => {
                 precio: i.precio
             }))
         };
-        const { data } = await api.post('/ventas', payload);
+        const { data } = await ventaService.createVenta(payload);
         await Swal.fire({
             icon: 'success',
             title: `¡Venta #${data.idVenta} Exitosa!`,
@@ -153,12 +154,12 @@ const procesarVenta = async () => {
             timer: 2000,
             showConfirmButton: false
         });
-        const ticketUrl = `http://localhost:3001/api/ventas/${data.idVenta}/ticket?token=${authStore.token}`;
+        const ticketUrl = `${API_URL}/ventas/${data.idVenta}/ticket?token=${authStore.token}`;
         window.open(ticketUrl, '_blank');
         carrito.value = [];
         datosVenta.ClienteNombre = '';
-        const artRes = await api.get('/articulos');
-        articulos.value = artRes.data;
+        const { data: arts } = await articuloService.getArticulos();
+        articulos.value = arts;
     } catch (error) {
         console.error(error);
         Swal.fire('Error', error.response?.data?.msg || 'Error al procesar venta.', 'error');
@@ -210,7 +211,7 @@ const getBadgeClass = (stock) => {
                                     <i class="fa-solid fa-layer-group me-1"></i>Pack
                                 </div>
                                 <div class="card-img-top bg-light d-flex align-items-center justify-content-center overflow-hidden position-relative" style="height: 140px;">
-                                    <img v-if="item.imagen" :src="`http://localhost:3001/uploads/${item.imagen}`" class="w-100 h-100 object-fit-cover">
+                                    <img v-if="item.imagen" :src="`${BASE_URL}/uploads/${item.imagen}`" class="w-100 h-100 object-fit-cover">
                                     <i v-else-if="item.esCombo" class="fa-solid fa-box-open text-primary opacity-25 display-4"></i>
                                     <i v-else class="fa-solid fa-image text-muted opacity-25 display-4"></i>
                                     <div v-if="!item.esCombo && item.stock <= 0" class="position-absolute top-0 start-0 w-100 h-100 bg-white bg-opacity-75 d-flex align-items-center justify-content-center">

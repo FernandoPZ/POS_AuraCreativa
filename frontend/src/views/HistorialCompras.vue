@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useAuthStore } from '@/stores/auth';
-import axios from 'axios';
+import entradaService from '@/services/entradaService';
 import Swal from 'sweetalert2';
 import { Modal } from 'bootstrap';
 
@@ -10,17 +9,11 @@ const detalleActual = ref([]);
 const entradaSeleccionada = ref({});
 const loading = ref(false);
 const loadingDetalle = ref(false);
-const authStore = useAuthStore();
 let detalleModal = null;
-
-const api = axios.create({
-    baseURL: 'http://localhost:3001/api',
-    headers: { Authorization: `Bearer ${authStore.token}` }
-});
 const loadEntradas = async () => {
     loading.value = true;
     try {
-        const { data } = await api.get('/entradas');
+        const { data } = await entradaService.getEntradas();
         entradas.value = data;
     } catch (error) {
         console.error(error);
@@ -38,7 +31,7 @@ const verDetalle = async (entrada) => {
     }
     detalleModal.show();
     try {
-        const { data } = await api.get(`/entradas/${entrada.IdEntrada}`);
+        const { data } = await entradaService.getDetalleEntrada(entrada.IdEntrada);
         detalleActual.value = data;
     } catch (error) {
         Swal.fire('Error', 'No se pudieron cargar los detalles.', 'error');

@@ -1,19 +1,14 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
-import axios from 'axios';
+import articuloService from '@/services/articuloService';
+import proveedorService from '@/services/proveedorService';
 import Swal from 'sweetalert2';
 
 const route = useRoute();
 const router = useRouter();
-const authStore = useAuthStore();
 const isEditing = computed(() => !!route.params.id);
 const itemId = computed(() => route.params.id);
-const api = axios.create({
-    baseURL: 'http://localhost:3001/api',
-    headers: { Authorization: `Bearer ${authStore.token}` }
-});
 const loading = ref(false);
 const isSaving = ref(false);
 const proveedores = ref([]);
@@ -35,7 +30,7 @@ const form = reactive({
 });
 const loadProveedores = async () => {
     try {
-        const { data } = await api.get('/proveedores');
+        const { data } = await proveedorService.getProveedores();
         proveedores.value = data;
     } catch (error) {
         console.error('Error cargando proveedores:', error);
@@ -48,7 +43,7 @@ const loadProveedores = async () => {
 const loadItem = async () => {
     loading.value = true;
     try {
-        const { data } = await api.get(`/articulos/${itemId.value}`);
+        const { data } = await articuloService.getArticulo(itemId.value);
         form.NomArticulo = data.NomArticulo;
         form.StockActual = data.StockActual;
         form.PrecioVenta = Number(data.PrecioVenta);
@@ -62,6 +57,7 @@ const loadItem = async () => {
         form.DetallesTecnicos = data.DetallesTecnicos || '';
         form.NombreUnidad = data.NombreUnidad || 'Pza';
         if (data.Imagen) {
+            // Nota: agregar la URL base según configuración del servidor
             previewImage.value = `http://localhost:3001/uploads/${data.Imagen}`;
         }
     } catch (err) {
@@ -100,14 +96,14 @@ const handleSubmit = async () => {
             formData.append('Imagen', form.Imagen);
         }
         if (isEditing.value) {
-            await api.put(`/articulos/${itemId.value}`, formData);
+            await articuloService.updateArticulo(itemId.value, formData);
             await Swal.fire({
                 icon: 'success', title: '¡Actualizado!',
                 text: 'El producto ha sido modificado correctamente.',
                 timer: 1500, showConfirmButton: false
             });
         } else {
-            await api.post('/articulos', formData);
+            await articuloService.createArticulo(formData);
             await Swal.fire({
                 icon: 'success', title: '¡Registrado!',
                 text: 'Nuevo producto añadido al catálogo.',

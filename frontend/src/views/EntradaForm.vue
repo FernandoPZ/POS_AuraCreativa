@@ -1,12 +1,12 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
-import axios from 'axios';
+import proveedorService from '@/services/proveedorService';
+import articuloService from '@/services/articuloService';
+import entradaService from '@/services/entradaService';
 import Swal from 'sweetalert2';
 
 const router = useRouter();
-const authStore = useAuthStore();
 const proveedores = ref([]);
 const articulos = ref([]);
 const carrito = ref([]);
@@ -21,17 +21,13 @@ const itemActual = reactive({
     Cantidad: 1,
     Costo: 0
 });
-const api = axios.create({
-    baseURL: 'http://localhost:3001/api',
-    headers: { Authorization: `Bearer ${authStore.token}` }
-});
 
 onMounted(async () => {
     loading.value = true;
     try {
         const [provRes, artRes] = await Promise.all([
-            api.get('/proveedores'),
-            api.get('/articulos')
+            proveedorService.getProveedores(),
+            articuloService.getArticulos()
         ]);
         proveedores.value = provRes.data;
         articulos.value = artRes.data;
@@ -66,7 +62,7 @@ const agregarItem = () => {
     const existe = carrito.value.find(i => i.IdArticulo === linea.IdArticulo);
     if (existe) {
         existe.Cantidad += linea.Cantidad;
-        existe.Subtotal = existe.Cantidad * existe.Costo; // Mantenemos el costo último o promedio (aquí simplificamos reemplazando)
+        existe.Subtotal = existe.Cantidad * existe.Costo; 
         Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Cantidad actualizada', timer: 1500, showConfirmButton: false });
     } else {
         carrito.value.push(linea);
@@ -89,14 +85,14 @@ const guardarEntrada = async () => {
             Comentarios: encabezado.Comentarios,
             Productos: carrito.value
         };
-        const { data } = await api.post('/entradas', payload);
+        const { data } = await entradaService.createEntrada(payload);
         await Swal.fire({
             icon: 'success',
             title: '¡Compra Registrada!',
             text: `Entrada #${data.IdEntrada} guardada correctamente.`,
             confirmButtonText: 'Aceptar'
         });
-        router.push('/articulos');
+        router.push('/entradas'); 
     } catch (error) {
         console.error(error);
         Swal.fire('Error', error.response?.data?.msg || 'No se pudo guardar la compra.', 'error');

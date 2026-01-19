@@ -12,10 +12,10 @@ exports.getVentas = async (req, res) => {
                    v."Estado", 
                    v."ClienteNombre",
                    COALESCE(u."Nombre", 'Usuario Desconocido') as "Vendedor",
-                   COALESCE(pe."NombrePunto", 'Mostrador General') as "PuntoEntrega" -- AGREGADO
+                   COALESCE(pe."NombrePunto", 'Mostrador General') as "PuntoEntrega"
             FROM "Ventas" v
             LEFT JOIN "Usuario" u ON v."IdUsuario" = u."IdUsuario"
-            LEFT JOIN "PuntosEntrega" pe ON v."IdPuntoEntrega" = pe."IdPunto" -- JOIN con Puntos
+            LEFT JOIN "PuntosEntrega" pe ON v."IdPuntoEntrega" = pe."IdPunto"
             ORDER BY v."Fecha" DESC
             LIMIT 100
         `;

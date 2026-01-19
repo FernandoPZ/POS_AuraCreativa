@@ -1,21 +1,16 @@
-import axios from 'axios';
-import { useAuthStore } from '@/stores/auth';
-
-const API_URL = 'http://localhost:3001/api/puntos-entrega';
-
-const getAuthHeader = () => {
-  const authStore = useAuthStore();
-  return { headers: { Authorization: `Bearer ${authStore.token}` } };
-};
+import api from './api';
 
 export default {
-  getPuntos() {
-    return axios.get(API_URL, getAuthHeader()).then(res => res.data);
-  },
-  createPunto(data) {
-    return axios.post(API_URL, data, getAuthHeader()).then(res => res.data);
-  },
-  deletePunto(id) {
-    return axios.delete(`${API_URL}/${id}`, getAuthHeader()).then(res => res.data);
-  }
+    getPuntos() {
+        return api.get('/puntos-entrega');
+    },
+    createPunto(data) {
+        return api.post('/puntos-entrega', data);
+    },
+    updatePunto(id, data) {
+        return api.put(`/puntos-entrega/${id}`, data);
+    },
+    deletePunto(id) {
+        return api.delete(`/puntos-entrega/${id}`);
+    }
 };

@@ -1,28 +1,18 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useAuthStore } from '@/stores/auth';
-import axios from 'axios';
+import proveedorService from '@/services/proveedorService';
 import Swal from 'sweetalert2';
 
 const proveedores = ref([]);
 const loading = ref(false);
-const authStore = useAuthStore();
-const api = axios.create({
-    baseURL: 'http://localhost:3001/api',
-    headers: { Authorization: `Bearer ${authStore.token}` }
-});
 const loadProveedores = async () => {
     loading.value = true;
     try {
-        const { data } = await api.get('/proveedores');
+        const { data } = await proveedorService.getProveedores();
         proveedores.value = data;
     } catch (error) {
         console.error(error);
-        if (error.response?.status === 401) {
-            authStore.logout();
-        } else {
-            Swal.fire('Error', 'No se pudo cargar la lista de proveedores.', 'error');
-        }
+        Swal.fire('Error', 'No se pudo cargar la lista de proveedores.', 'error');
     } finally {
         loading.value = false;
     }
@@ -30,7 +20,6 @@ const loadProveedores = async () => {
 
 onMounted(loadProveedores);
 
-// Eliminar
 const confirmDelete = (prov) => {
     Swal.fire({
         title: '¿Eliminar proveedor?',
@@ -44,7 +33,7 @@ const confirmDelete = (prov) => {
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {
-                await api.delete(`/proveedores/${prov.IdProveedor}`);
+                await proveedorService.deleteProveedor(prov.IdProveedor);
                 Swal.fire({
                     icon: 'success', title: 'Eliminado',
                     text: 'El proveedor ha sido dado de baja.',

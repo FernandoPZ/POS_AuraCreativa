@@ -1,13 +1,11 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
-import axios from 'axios';
+import proveedorService from '@/services/proveedorService';
 import Swal from 'sweetalert2';
 
 const route = useRoute();
 const router = useRouter();
-const authStore = useAuthStore();
 const isEditing = computed(() => !!route.params.id);
 const itemId = computed(() => route.params.id);
 const loading = ref(false);
@@ -20,14 +18,10 @@ const form = reactive({
     Email: '',
     Direccion: ''
 });
-const api = axios.create({
-    baseURL: 'http://localhost:3001/api',
-    headers: { Authorization: `Bearer ${authStore.token}` }
-});
 const loadItem = async () => {
     loading.value = true;
     try {
-        const { data } = await api.get(`/proveedores/${itemId.value}`);
+        const { data } = await proveedorService.getProveedor(itemId.value);
         Object.assign(form, data);
     } catch (err) {
         Swal.fire('Error', 'No se pudo cargar el proveedor.', 'error');
@@ -36,8 +30,6 @@ const loadItem = async () => {
         loading.value = false;
     }
 };
-
-// Guardar
 const handleSubmit = async () => {
     if (!form.NomProveedor) {
         return Swal.fire('Atención', 'El nombre del proveedor es obligatorio.', 'warning');
@@ -45,14 +37,14 @@ const handleSubmit = async () => {
     isSaving.value = true;
     try {
         if (isEditing.value) {
-            await api.put(`/proveedores/${itemId.value}`, form);
+            await proveedorService.updateProveedor(itemId.value, form);
             await Swal.fire({
                 icon: 'success', title: '¡Actualizado!',
                 text: 'Proveedor modificado correctamente.',
                 timer: 1500, showConfirmButton: false
             });
         } else {
-            await api.post('/proveedores', form);
+            await proveedorService.createProveedor(form);
             await Swal.fire({
                 icon: 'success', title: '¡Registrado!',
                 text: 'Nuevo proveedor añadido.',

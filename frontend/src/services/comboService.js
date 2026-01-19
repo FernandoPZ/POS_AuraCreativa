@@ -1,27 +1,19 @@
-import axios from 'axios';
-import { useAuthStore } from '@/stores/auth';
-
-const API_URL = 'http://localhost:3001/api/combos';
-
-const getAuthHeader = () => {
-  const authStore = useAuthStore();
-  return { headers: { Authorization: `Bearer ${authStore.token}` } };
-};
+import api from './api';
 
 export default {
     getCombos() {
-        return axios.get(API_URL, getAuthHeader()).then(res => res.data);
+        return api.get('/combos');
     },
-    getComboById(id) {
-        return axios.get(`${API_URL}/${id}`, getAuthHeader()).then(res => res.data);
+    getCombo(id) {
+        return api.get(`/combos/${id}`);
     },
     createCombo(data) {
-        return axios.post(API_URL, data, getAuthHeader()).then(res => res.data);
+        return api.post('/combos', data);
     },
     updateCombo(id, data) {
-        return axios.put(`${API_URL}/${id}`, data, getAuthHeader()).then(res => res.data);
+        return api.put(`/combos/${id}`, data);
     },
     deleteCombo(id) {
-        return axios.delete(`${API_URL}/${id}`, getAuthHeader()).then(res => res.data);
+        return api.delete(`/combos/${id}`);
     }
 };

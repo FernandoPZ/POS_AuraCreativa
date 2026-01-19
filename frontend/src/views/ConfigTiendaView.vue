@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import axios from 'axios';
-import { useAuthStore } from '@/stores/auth';
+import configService from '@/services/configService';
 import Swal from 'sweetalert2';
 
 const config = ref({
@@ -12,20 +11,13 @@ const config = ref({
     RedSocial: '',
     LogoUrl: ''
 });
-
 const loading = ref(false);
 const saving = ref(false);
-const authStore = useAuthStore();
-const api = axios.create({
-    baseURL: 'http://localhost:3001/api',
-    headers: { Authorization: `Bearer ${authStore.token}` }
-});
 
-// Cargar datos al entrar
 onMounted(async () => {
     loading.value = true;
     try {
-        const { data } = await api.get('/configuracion');
+        const { data } = await configService.getConfig();
         config.value = data;
     } catch (error) {
         console.error(error);
@@ -40,12 +32,10 @@ onMounted(async () => {
     }
 });
 
-// Guardar cambios
 const guardarCambios = async () => {
     saving.value = true;
     try {
-        await api.put('/configuracion', config.value);
-        // ALERTA DE ÉXITO
+        await configService.updateConfig(config.value);
         Swal.fire({
             icon: 'success',
             title: '¡Guardado!',
@@ -56,7 +46,6 @@ const guardarCambios = async () => {
         });
     } catch (error) {
         console.error(error);
-        // ALERTA DE ERROR
         Swal.fire({
             icon: 'error',
             title: 'Error al guardar',

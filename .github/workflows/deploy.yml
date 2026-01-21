@@ -1,0 +1,49 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+    build-and-deploy:
+        runs-on: ubuntu-lastest
+
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                node-version: '20'
+
+            # Construcción del frontend
+            - name: Build Frontend
+              working-directory: ./frontend
+              run: |
+                npm install
+                npm run build
+
+            # Copiar archivos al servidor Azure
+            - name: Copy files via SCP
+              uses: appleboy/scp-action@vmaster
+              with:
+                host: ${{ secrets.HOST }}
+                username: ${{ secrets.USERNAME }}
+                key: ${{ secrets.KEY }}
+                source: "."
+                target: "/var/www/html/"
+                rm: true
+            
+            # Arrancar el backend en el servidor Azure
+            - name: Remote SSH Commands
+              uses: appleboy/ssh-action@vmaster
+              with:
+                host: ${{ secrets.HOST }}
+                username: ${{ secrets.USERNAME }}
+                key: ${{ secrets.KEY }}
+                script: |
+                  cd /var/www/html/backend
+                  npm install
+                  pm2 reload aura-api --update-env || pm2 start index.js --name "aura-api"
+                  pm2 save

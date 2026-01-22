@@ -57,3 +57,5 @@ server.listen(PORT, () => {
 
 // Exportamos app y server para usarlo en otros archivos
 module.exports = { app, server };
+
+// coemtario generico

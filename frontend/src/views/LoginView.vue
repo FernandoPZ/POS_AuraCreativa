@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
-import logoImg from '@/assets/Logo01.png';
+import logoImg from '@/assets/logo01.png';
 
 const authStore = useAuthStore();
 const email = ref('');

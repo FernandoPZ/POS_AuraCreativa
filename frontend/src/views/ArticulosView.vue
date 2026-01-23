@@ -137,7 +137,7 @@ const getBadgeStyle = (nombreColor) => {
                                         <div class="me-3 border rounded overflow-hidden d-flex align-items-center justify-content-center bg-light" 
                                              style="width: 50px; height: 50px; min-width: 50px;">
                                             <img v-if="articulo.Imagen" 
-                                                 :src="`http://localhost:3001/uploads/${articulo.Imagen}`" 
+                                                 :src="`http://20.168.11.169:3001/uploads/${articulo.Imagen}`" 
                                                  class="w-100 h-100 object-fit-cover" 
                                                  alt="Img">
                                             <i v-else class="fa-solid fa-image text-muted opacity-25 fs-5"></i>
@@ -204,7 +204,7 @@ const getBadgeStyle = (nombreColor) => {
                         <div class="row g-4">
                             <div class="col-12 col-md-5 d-flex align-items-center justify-content-center bg-light rounded-3 overflow-hidden position-relative" style="min-height: 300px;">
                                 <img v-if="articuloSeleccionado.Imagen" 
-                                     :src="`http://localhost:3001/uploads/${articuloSeleccionado.Imagen}`" 
+                                     :src="`http://20.168.11.169:3001/uploads/${articuloSeleccionado.Imagen}`" 
                                      class="w-100 h-100 object-fit-contain position-absolute top-0 start-0 p-3"
                                      alt="Producto Grande">
                                 <div v-else class="text-center text-muted opacity-50">

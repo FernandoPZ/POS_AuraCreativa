@@ -58,7 +58,7 @@ const loadItem = async () => {
         form.NombreUnidad = data.NombreUnidad || 'Pza';
         if (data.Imagen) {
             // Nota: agregar la URL base según configuración del servidor
-            previewImage.value = `http://localhost:3001/uploads/${data.Imagen}`;
+            previewImage.value = `http://20.168.11.169:3001/uploads/${data.Imagen}`;
         }
     } catch (err) {
         Swal.fire('Error', 'No se pudo cargar el artículo.', 'error');

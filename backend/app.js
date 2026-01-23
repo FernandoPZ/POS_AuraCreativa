@@ -3,12 +3,8 @@ const express = require('express');
 const http = require('http');
 
 const cors = require('cors');
+const fs = require('fs');
 const path = require('path');
-
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
-});
 
 const authRoutes = require('./routes/authRoutes');
 const articuloRoutes = require('./routes/articuloRoutes'); 
@@ -47,6 +43,17 @@ app.use('/api/configuracion', configRoutes);
 app.use('/api/puntos-entrega', puntosRoutes);
 app.use('/api/bitacora', bitacoraRoutes);
 
+// Frontend (SPA) - solo si existe el build (por ejemplo, cuando despliegas back+front juntos)
+const frontendDistPath = path.join(__dirname, '../frontend/dist');
+if (fs.existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+
+  // Catch-all para SPA (evita interceptar /api y /uploads)
+  app.get(/^(?!\/api)(?!\/uploads).*/, (req, res) => {
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+}
+
 // El manejador de conexiones está en socket.js
 
 const PORT = process.env.PORT || 3000;
@@ -57,5 +64,3 @@ server.listen(PORT, () => {
 
 // Exportamos app y server para usarlo en otros archivos
 module.exports = { app, server };
-
-// coemtario generico

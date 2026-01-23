@@ -22,7 +22,7 @@ const datosVenta = reactive({
     IdPuntoEntrega: '',
     ClienteNombre: ''
 });
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://20.168.11.169:3001/api';
 const BASE_URL = API_URL.replace('/api', ''); 
 
 onMounted(async () => {

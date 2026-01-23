@@ -3,7 +3,7 @@ function init(server) {
   const { Server } = require('socket.io');
   io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || "http://localhost:8080",
+      origin: process.env.FRONTEND_URL || "http://20.168.11.169:3001/",
       methods: ["GET", "POST"]
     }
   });

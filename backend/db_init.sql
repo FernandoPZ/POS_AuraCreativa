@@ -388,7 +388,7 @@ ALTER TABLE ONLY public."Ventas" ALTER COLUMN "IdVenta" SET DEFAULT nextval('pub
 ALTER TABLE ONLY public.bitacora_actividades ALTER COLUMN id SET DEFAULT nextval('public.bitacora_actividades_id_seq'::regclass);
 
 COPY public."Configuracion" ("IdConfig", "NombreTienda", "Direccion", "Telefono", "MensajeTicket", "RedSocial", "LogoUrl") FROM stdin;
-1	Aura Creativa	Hidalgo	7714306643	¡Gracias por su compra!	@aura.subliminados	Logo01.png
+1	Aura Creativa	Hidalgo	7714306643	¡Gracias por su compra!	@aura.subliminados	logo01.png
 \.
 
 COPY public."Usuario" ("IdUsuario", "Nombre", "Email", "PasswordHash", "Rol", "FechaCreacion", "FechaModificacion", "Activo") FROM stdin;

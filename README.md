@@ -103,7 +103,7 @@ Sigue estos pasos para levantar el proyecto desde cero.
 
 3. Configuración de Entorno: Crea un archivo .env en la carpeta frontend/ para definir la URL de la API:
    ```bash
-   VITE_API_URL=http://localhost:3001/api
+   VITE_API_URL=http://20.168.11.169:3001/api
    ```
 
 4. Inicia la aplicación:

@@ -13,6 +13,8 @@ const loading = ref(false);
 const isSaving = ref(false);
 const proveedores = ref([]);
 const previewImage = ref(null);
+const API_URL = import.meta.env.VITE_API_URL || 'http://20.168.11.169:3001/api';
+const BASE_URL = API_URL.replace('/api', ''); 
 const form = reactive({
     NomArticulo: '', 
     CodArticulo: '',
@@ -57,8 +59,7 @@ const loadItem = async () => {
         form.DetallesTecnicos = data.DetallesTecnicos || '';
         form.NombreUnidad = data.NombreUnidad || 'Pza';
         if (data.Imagen) {
-            // Nota: agregar la URL base según configuración del servidor
-            previewImage.value = `http://20.168.11.169:3001/uploads/${data.Imagen}`;
+            previewImage.value = `${BASE_URL}/uploads/${data.Imagen}`;
         }
     } catch (err) {
         Swal.fire('Error', 'No se pudo cargar el artículo.', 'error');

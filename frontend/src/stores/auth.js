@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import axios from 'axios';
 import router from '@/router';
 
-const API_URL = 'http://20.168.11.169:3001/api'; 
+const API_URL = import.meta.env.VITE_API_URL || 'http://20.168.11.169:3001/api'; // Direccion del server
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({

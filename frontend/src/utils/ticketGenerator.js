@@ -7,150 +7,166 @@ const cargarImagen = (src) => {
         if (!src) return resolve(null);
         const img = new Image();
         img.src = src;
+        img.crossOrigin = "Anonymous"; 
         img.onload = () => resolve(img);
-        img.onerror = () => { resolve(null); };
+        img.onerror = () => resolve(null);
     });
 };
 
-export const generarTicketPDF = async (ventaId, usuarioNombre, carrito, total, logoTopSrc, watermarkSrc, redSocialSrc, configTienda, nombreCliente, linkMaps, fechaEntrega) => {
+export const generarTicketPDF = async (
+    ventaId, usuarioNombre, carrito, total, 
+    logoTopSrc, watermarkSrc, redSocialImg, configTienda, 
+    nombreCliente, LinkGoogleMaps, fechaEntrega
+) => {
+
+    console.log("Generando Ticket. LinkGoogleMaps:", LinkGoogleMaps);
+    // --- 1. CÁLCULO DE ALTURA DINÁMICA ---
+    let estimatedHeight = 50; // Base
+    carrito.forEach(item => {
+        estimatedHeight += 5;
+        if (item.esCombo && item.ingredientes?.length > 0) {
+            estimatedHeight += (item.ingredientes.length * 5);
+        }
+    });
+
+    if (configTienda?.Direccion) estimatedHeight += 15;
+    estimatedHeight += 25; 
+    // --- 2. INICIALIZAR PDF ---
     const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: [80, 200]
+        format: [80, estimatedHeight]
     });
     const centerX = 40;
     let yPos = 5;
-    const [imgTop, imgWatermark, imgRedSocial] = await Promise.all([
-        cargarImagen(logoTopSrc),
-        cargarImagen(watermarkSrc),
-        cargarImagen(redSocialSrc)
-    ]);
-    // --- MARCA DE AGUA ---
-    if (imgWatermark) {
-        try {
-            const wAncho = 60; 
-            const wAlto = (imgWatermark.height * wAncho) / imgWatermark.width; 
-            const wX = (80 - wAncho) / 2;
-            doc.setGState(new doc.GState({ opacity: 0.10 }));
-            doc.addImage(imgWatermark, 'PNG', wX, 60, wAncho, wAlto);
-            doc.setGState(new doc.GState({ opacity: 1.0 }));
-        } catch (e) { console.error(e); }
-    }
-    // --- LOGO SUPERIOR ---
+    // Cargar Logo
+    const imgTop = await cargarImagen(logoTopSrc);
+    // --- 3. LOGO / CABECERA ---
     if (imgTop) {
-        try {
-            const lAncho = 30; 
-            const lAlto = (imgTop.height * lAncho) / imgTop.width; 
-            const lX = (80 - lAncho) / 2;
-            doc.addImage(imgTop, 'PNG', lX, yPos, lAncho, lAlto);
-            yPos += lAlto + 5; 
-        } catch (e) { console.error(e); }
-    }
-    // --- CABECERA TIENDA ---
-    if (!imgTop) {
-        doc.setFontSize(12);
+        const imgWidth = 30; 
+        const imgHeight = (imgTop.height * imgWidth) / imgTop.width;
+        doc.addImage(imgTop, 'PNG', (80 - imgWidth)/2, yPos, imgWidth, imgHeight);
+        yPos += imgHeight + 5;
+    } else {
+        doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
-        doc.text(configTienda?.NombreTienda || "Mi Tienda", centerX, yPos, { align: "center" });
-        yPos += 5;
+        doc.text(configTienda?.NombreTienda || "Tu Tienda", centerX, yPos + 5, { align: "center" });
+        yPos += 10;
     }
-    doc.setFontSize(8);
+    // --- 4. DATOS DE LA TIENDA ---
     doc.setFont("helvetica", "normal");
-    // Dirección
+    doc.setFontSize(8);
     if (configTienda?.Direccion) {
-        const direLines = doc.splitTextToSize(configTienda.Direccion, 70);
-        doc.text(direLines, centerX, yPos, { align: "center" });
-        yPos += (direLines.length * 4); 
+        const splitDir = doc.splitTextToSize(configTienda.Direccion, 70);
+        doc.text(splitDir, centerX, yPos, { align: "center" });
+        yPos += (splitDir.length * 4) + 2;
     }
-    // Red Social
-    if (configTienda?.RedSocial) {
-        const textoRed = configTienda.RedSocial;
-        if (imgRedSocial) {
-            const iconSize = 4;
-            const textWidth = doc.getTextWidth(textoRed);
-            const totalWidth = iconSize + 1 + textWidth;
-            const startX = (80 - totalWidth) / 2;
-            doc.addImage(imgRedSocial, 'PNG', startX, yPos - 3, iconSize, iconSize);
-            doc.text(textoRed, startX + iconSize + 1, yPos);
-        } else {
-            doc.text(textoRed, centerX, yPos, { align: "center" });
-        }
-        yPos += 5;
-    }
-    // Teléfono
     if (configTienda?.Telefono) {
         doc.text(`Tel: ${configTienda.Telefono}`, centerX, yPos, { align: "center" });
-        yPos += 4;
+        yPos += 5;
     }
-    doc.text("--------------------------------", centerX, yPos, { align: "center" });
+
+    doc.text("- - - - - - - - - - - - - - - - - - - - - -", centerX, yPos, { align: "center" });
     yPos += 5;
-    // --- DATOS VENTA ---
+
+    // --- 5. INFO VENTA ---
+    doc.setFontSize(8);
     doc.text(`Folio: #${ventaId}`, 5, yPos);
-    yPos += 4;
-    // 1. FECHA DE EMISIÓN (Hoy)
-    const fechaEmision = new Date().toLocaleString(); // Fecha y hora actual
-    doc.text(`Emisión: ${fechaEmision}`, 5, yPos);
-    yPos += 4;
-    // 2. FECHA DE ENTREGA (La que seleccionaste)
+    doc.text(`${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`, 75, yPos, { align: "right" });
+    yPos += 5;
+    
     if (fechaEntrega) {
-        // Formatear un poco la fecha (AAAA-MM-DD -> DD/MM/AAAA)
-        const [anio, mes, dia] = fechaEntrega.split('-');
-        doc.setFont("helvetica", "bold"); // Negrita para resaltar
-        doc.text(`Entrega: ${dia}/${mes}/${anio}`, 5, yPos);
-        doc.setFont("helvetica", "normal"); // Volver a normal
-        yPos += 4;
+         doc.setFont("helvetica", "bold");
+         doc.text(`ENTREGA: ${fechaEntrega}`, 5, yPos);
+         doc.setFont("helvetica", "normal");
+         yPos += 5;
     }
-    doc.text(`Cliente: ${nombreCliente || 'Público General'}`, 5, yPos);
-    yPos += 4;
-    doc.text(`Le atendió: ${usuarioNombre}`, 5, yPos);
+
+    doc.text(`Cliente: ${nombreCliente || 'General'}`, 5, yPos);
+    yPos += 5;
+    doc.text(`Atendió: ${usuarioNombre}`, 5, yPos);
     yPos += 2;
-    // --- TABLA DE PRODUCTOS ---
-    const columnas = ["Cant", "Prod", "P.U.", "Total"];
-    const filas = carrito.map(item => [
-        item.cantidad,
-        item.tipo === 'COMBO' ? `[KIT] ${item.nombre}` : item.nombre || item.NomArticulo,
-        `$${Number(item.precio).toFixed(2)}`,
-        `$${(item.cantidad * item.precio).toFixed(2)}`
-    ]);
+
+    // --- 6. TABLA ---
+    const tableBody = [];
+    carrito.forEach(item => {
+        tableBody.push([
+            item.cantidad,
+            item.nombre || item.NomArticulo, 
+            `$${Number(item.precio).toFixed(2)}`,
+            `$${(item.cantidad * item.precio).toFixed(2)}`
+        ]);
+        if (item.esCombo && item.ingredientes?.length > 0) {
+            item.ingredientes.forEach(ing => {
+                tableBody.push([
+                    '', 
+                    `  • ${ing.NomArticulo} (${ing.Cantidad})`, 
+                    '', 
+                    '' 
+                ]);
+            });
+        }
+    });
+
     autoTable(doc, {
-        head: [columnas],
-        body: filas,
         startY: yPos,
+        head: [['Cant', 'Concepto', 'P.U.', 'Total']],
+        body: tableBody,
         theme: 'plain',
         styles: { fontSize: 7, cellPadding: 1, overflow: 'linebreak' },
-        headStyles: { fontStyle: 'bold', halign: 'center' },
+        headStyles: { fontStyle: 'bold', halign: 'center', borderBottomWidth: 0.1 },
         columnStyles: {
             0: { cellWidth: 8, halign: 'center' },
             1: { cellWidth: 'auto' },
-            2: { cellWidth: 13, halign: 'right' },
+            2: { cellWidth: 12, halign: 'right' },
             3: { cellWidth: 15, halign: 'right' }
         },
-        margin: { left: 4, right: 4 }
+        margin: { left: 2, right: 2 },
+        didParseCell: (data) => {
+            if (data.section === 'body' && data.cell.raw && data.cell.raw.toString().includes('•')) {
+                data.cell.styles.fontStyle = 'italic';
+                data.cell.styles.textColor = [100, 100, 100];
+                data.cell.styles.fontSize = 6;
+            }
+        }
     });
-    const finalY = doc.lastAutoTable.finalY + 5;
-    // --- TOTALES ---
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text(`TOTAL: $${total.toFixed(2)}`, 76, finalY, { align: "right" });
-    let yPie = finalY + 15;
-    // --- CÓDIGO QR ---
-    if (linkMaps) {
-        try {
-            const qrDataUrl = await QRCode.toDataURL(linkMaps, { margin: 1 });
-            const qrSize = 25;
-            const qrX = (80 - qrSize) / 2;
 
-            doc.setFontSize(8);
-            doc.setFont("helvetica", "bold");
-            doc.text("Escanea para ver ubicación de entrega:", centerX, yPie, { align: "center" });
-            
-            doc.addImage(qrDataUrl, 'PNG', qrX, yPie + 2, qrSize, qrSize);
-            yPie += qrSize + 5; 
-        } catch (err) { console.error(err); }
-    }
-    // --- MENSAJE FINAL ---
-    doc.setFontSize(8);
+    const finalY = doc.lastAutoTable.finalY + 5;
+
+    // --- 7. TOTALES ---
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text(`TOTAL: $${Number(total).toFixed(2)}`, 75, finalY, { align: "right" });
+    
+    // --- 8. FOOTER (QR + MENSAJE LADO A LADO) ---
+    const footerY = finalY + 8;
+    
+    // A. MENSAJE (Izquierda) - Ancho aprox 45mm
+    doc.setFontSize(7);
     doc.setFont("helvetica", "italic");
-    doc.text(configTienda?.MensajeTicket || "¡Gracias!", centerX, yPie, { align: "center" });
-    doc.save(`Ticket_${ventaId}.pdf`);
+    const msg = configTienda?.MensajeTicket || "¡Gracias por su compra!";
+    const msgSplit = doc.splitTextToSize(msg, 45); // Ajustar texto a 45mm de ancho
+    doc.text(msgSplit, 5, footerY + 3); // Margen izquierdo 5mm
+
+    // B. QR (Derecha) - Si existe link
+    if (LinkGoogleMaps) {
+        try {
+            const qrUrl = await QRCode.toDataURL(LinkGoogleMaps, { margin: 0 });
+            const qrSize = 18; // Tamaño pequeño (18mm)
+            const qrX = 58;    // Posición X (cerca del borde derecho)
+            
+            // Texto "Ubicación" encima del QR (opcional)
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(6);
+            doc.text("Ubicación:", qrX + (qrSize/2), footerY, { align: "center" });
+            
+            // Imagen QR
+            doc.addImage(qrUrl, 'PNG', qrX, footerY + 2, qrSize, qrSize);
+        } catch (e) {
+            console.error("Error generando QR", e);
+        }
+    }
+
+    // ABRIR PDF
     window.open(doc.output('bloburl'), '_blank');
 };

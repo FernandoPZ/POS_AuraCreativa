@@ -4,7 +4,7 @@ const http = require('http');
 const cors = require('cors');
 const path = require('path');
 
-// 1. INICIALIZAR LA APP (Primero que nada)
+// 1. INICIALIZAR LA APP
 const app = express();
 const server = http.createServer(app);
 const socket = require('./socket');
@@ -14,10 +14,11 @@ app.use(cors());
 app.use(express.json());
 
 // 3. ARCHIVOS ESTÁTICOS
-// Sirve la carpeta 'dist' que está DENTRO de backend (según lo que movimos)
+// Sirve la carpeta 'dist' que está DENTRO de backend
 app.use(express.static(path.join(__dirname, 'dist')));
 // Sirve las imágenes subidas
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
 
 // 4. INICIALIZAR SOCKET
 socket.init(server);
@@ -36,7 +37,7 @@ const configRoutes = require('./routes/configRoutes');
 const puntosRoutes = require('./routes/puntosEntregaRoutes');
 const bitacoraRoutes = require('./routes/bitacoraRoutes');
 
-// 6. DEFINIR RUTAS DE API (Antes del comodín del frontend)
+// 6. DEFINIR RUTAS DE API
 app.use('/api', authRoutes);
 app.use('/api', articuloRoutes);
 app.use('/api', movimientoRoutes);

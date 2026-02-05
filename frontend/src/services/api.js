@@ -3,9 +3,7 @@ import { useAuthStore } from '@/stores/auth';
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://20.168.11.169:3001/api',
-    headers: {
-        'Content-Type': 'application/json'
-    }
+    // headers: {'Content-Type': 'application/json'}
 });
 
 api.interceptors.request.use((config) => {

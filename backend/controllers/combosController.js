@@ -5,16 +5,34 @@ const { registrarAccion } = require('../utils/logger');
 exports.getCombos = async (req, res) => {
     const client = await pool.connect();
     try {
-        const query = `
-            SELECT "IdCombo", "Nombre", "Codigo", "Precio", "Activo"
-            FROM "Combos"
-            WHERE "Activo" = true
-            ORDER BY "Nombre" ASC
+        const queryHeader = `
+            SELECT "IdCombo",
+                   "Nombre",
+                   "Codigo",
+                   "Precio",
+                   "Activo"
+                FROM "Combos"
+                WHERE "Activo" = true
+                ORDER BY "Nombre" ASC
         `;
-        const result = await client.query(query);
-        res.json(result.rows);
+        const resultHeader = await client.query(queryHeader);
+        const combos = resultHeader.rows;
+        for (let combo of combos) {
+            const queryDetalle = `
+                SELECT a."IdArticulo", 
+                       a."NomArticulo", 
+                       a."NombreUnidad", 
+                       dc."Cantidad"
+                    FROM "DetalleCombos" dc
+                    JOIN "Articulos" a ON dc."IdArticulo" = a."IdArticulo"
+                    WHERE dc."IdCombo" = $1
+            `;
+            const resultDetalle = await client.query(queryDetalle, [combo.IdCombo]);
+            combo.ingredientes = resultDetalle.rows;
+        }
+        res.json(combos);
     } catch (error) {
-        console.error(error);
+        console.error('Error al obtener combos:', error);
         res.status(500).json({ msg: 'Error al obtener los combos.' });
     } finally {
         client.release();

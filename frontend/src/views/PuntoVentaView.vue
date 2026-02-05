@@ -1,13 +1,17 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import { useConfigStore } from '@/stores/config';
 import articuloService from '@/services/articuloService';
 import comboService from '@/services/comboService';
 import puntosEntregaService from '@/services/puntosEntregaService';
 import ventaService from '@/services/ventaService';
+import { generarTicketPDF } from '@/utils/ticketGenerator'; 
 import Swal from 'sweetalert2';
+import logoDefault from '@/assets/logo_default.png';
 
 const authStore = useAuthStore();
+const configStore = useConfigStore();
 const loading = ref(true);
 const procesando = ref(false);
 const articulos = ref([]);
@@ -33,6 +37,9 @@ onMounted(async () => {
             comboService.getCombos(),
             puntosEntregaService.getPuntos()
         ]);
+        if (!configStore.isLoaded) {
+             await configStore.fetchConfig();
+        }
         articulos.value = artRes.data;
         combos.value = comboRes.data;
         puntosEntrega.value = puntosRes.data;
@@ -68,94 +75,81 @@ const catalogoFiltrado = computed(() => {
         imagen: null,
         categoria: 'PAQUETES',
         tipo: 'COMBO',
-        esCombo: true
+        esCombo: true,
+        ingredientes: c.ingredientes || []
     }));
     let todo = [...listaArticulos, ...listaCombos];
     if (filtros.busqueda) {
         const term = filtros.busqueda.toLowerCase();
-        todo = todo.filter(i => 
-            i.nombre.toLowerCase().includes(term) || 
+        todo = todo.filter(i =>
+            i.nombre.toLowerCase().includes(term) ||
             (i.codigo && i.codigo.toLowerCase().includes(term))
         );
     }
     if (filtros.categoria !== 'TODOS') {
-        if (filtros.categoria === 'COMBOS') {
-            todo = todo.filter(i => i.esCombo);
-        } else {
-            todo = todo.filter(i => !i.esCombo && i.categoria === filtros.categoria);
-        }
+        if (filtros.categoria === 'COMBOS') todo = todo.filter(i => i.esCombo);
+        else todo = todo.filter(i => !i.esCombo && i.categoria === filtros.categoria);
     }
     return todo;
 });
-const totalVenta = computed(() => {
-    return carrito.value.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
-});
+const totalVenta = computed(() => carrito.value.reduce((sum, item) => sum + (item.precio * item.cantidad), 0));
 const agregarAlCarrito = (item) => {
-    if (!item.esCombo && item.stock <= 0) {
-        return Swal.fire({
-            toast: true, position: 'top-end', icon: 'warning', 
-            title: 'Sin stock disponible', showConfirmButton: false, timer: 1500
-        });
-    }
+    if (!item.esCombo && item.stock <= 0) return Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Sin stock', showConfirmButton: false, timer: 1500 });
     const existe = carrito.value.find(i => i.id === item.id && i.tipo === item.tipo);
     if (existe) {
-        if (!item.esCombo && existe.cantidad + 1 > item.stock) {
-            return Swal.fire({ toast: true, position: 'top', icon: 'warning', title: 'Stock insuficiente', timer: 1000, showConfirmButton: false });
-        }
+        if (!item.esCombo && existe.cantidad + 1 > item.stock) return Swal.fire({ toast: true, position: 'top', icon: 'warning', title: 'Stock insuficiente', timer: 1000, showConfirmButton: false });
         existe.cantidad++;
     } else {
-        carrito.value.push({
-            id: item.id,
-            nombre: item.nombre,
-            tipo: item.tipo,
-            precio: item.precio,
-            cantidad: 1,
-            maxStock: item.stock,
-            esCombo: item.esCombo
-        });
+        carrito.value.push({ id: item.id, nombre: item.nombre, tipo: item.tipo, precio: item.precio, cantidad: 1, maxStock: item.stock, esCombo: item.esCombo, ingredientes: item.ingredientes || [] });
     }
 };
 const cambiarCantidad = (index, delta) => {
     const item = carrito.value[index];
     const nuevaCant = item.cantidad + delta;
-    if (nuevaCant <= 0) {
-        carrito.value.splice(index, 1);
-        return;
-    }
-    if (delta > 0 && !item.esCombo && nuevaCant > item.maxStock) {
-        return Swal.fire({ toast: true, position: 'top', icon: 'warning', title: 'Tope de stock alcanzado', timer: 1000, showConfirmButton: false });
-    }
+    if (nuevaCant <= 0) { carrito.value.splice(index, 1); return; }
+    if (delta > 0 && !item.esCombo && nuevaCant > item.maxStock) return Swal.fire({ toast: true, position: 'top', icon: 'warning', title: 'Tope de stock', timer: 1000, showConfirmButton: false });
     item.cantidad = nuevaCant;
 };
-const eliminarItem = (index) => {
-    carrito.value.splice(index, 1);
-};
+const eliminarItem = (index) => carrito.value.splice(index, 1);
+const setCategoria = (cat) => { filtros.categoria = cat; };
+const getBadgeClass = (stock) => stock <= 0 ? 'bg-danger' : (stock < 5 ? 'bg-warning text-dark' : 'bg-success');
 const procesarVenta = async () => {
-    if (carrito.value.length === 0) return Swal.fire('Carrito vacío', 'Agrega productos para cobrar.', 'warning');
-    if (!datosVenta.IdPuntoEntrega) return Swal.fire('Falta punto de entrega', 'Selecciona dónde se entrega la venta.', 'warning');
+    if (carrito.value.length === 0) return Swal.fire('Carrito vacío', 'Agrega productos.', 'warning');
+    if (!datosVenta.IdPuntoEntrega) return Swal.fire('Falta punto de entrega', 'Selecciona dónde se entrega.', 'warning');
     procesando.value = true;
     try {
         const payload = {
             clienteNombre: datosVenta.ClienteNombre,
             idPuntoEntrega: datosVenta.IdPuntoEntrega,
             total: totalVenta.value,
-            productos: carrito.value.map(i => ({
-                id: i.id,
-                tipo: i.tipo,
-                cantidad: i.cantidad,
-                precio: i.precio
-            }))
+            productos: carrito.value.map(i => ({ id: i.id, tipo: i.tipo, cantidad: i.cantidad, precio: i.precio }))
         };
         const { data } = await ventaService.createVenta(payload);
         await Swal.fire({
-            icon: 'success',
-            title: `¡Venta #${data.idVenta} Exitosa!`,
-            text: 'Inventario actualizado correctamente.',
-            timer: 2000,
-            showConfirmButton: false
+            icon: 'success', title: `¡Venta #${data.idVenta} Exitosa!`,
+            text: 'Inventario actualizado.', timer: 2000, showConfirmButton: false
         });
-        const ticketUrl = `${API_URL}/ventas/${data.idVenta}/ticket?token=${authStore.token}`;
-        window.open(ticketUrl, '_blank');
+        const puntoSeleccionado = puntosEntrega.value.find(p => p.IdPunto === datosVenta.IdPuntoEntrega);
+        const linkMaps = puntoSeleccionado ? puntoSeleccionado.LinkGoogleMaps : null;
+        const logoParaTicket = configStore.fullLogoUrl || logoDefault;
+        await generarTicketPDF(
+            data.idVenta,
+            authStore.user?.Nombre || 'Vendedor',
+            carrito.value,
+            totalVenta.value,
+            logoParaTicket,
+            null,
+            null,
+            {
+                NombreTienda: configStore.nombreTienda,
+                Direccion: configStore.direccion,
+                Telefono: configStore.telefono,
+                MensajeTicket: configStore.mensajeTicket
+            },
+            datosVenta.ClienteNombre,
+            linkMaps,
+            null
+        );
         carrito.value = [];
         datosVenta.ClienteNombre = '';
         const { data: arts } = await articuloService.getArticulos();
@@ -166,12 +160,6 @@ const procesarVenta = async () => {
     } finally {
         procesando.value = false;
     }
-};
-const setCategoria = (cat) => { filtros.categoria = cat; };
-const getBadgeClass = (stock) => {
-    if (stock <= 0) return 'bg-danger';
-    if (stock < 5) return 'bg-warning text-dark';
-    return 'bg-success';
 };
 </script>
 

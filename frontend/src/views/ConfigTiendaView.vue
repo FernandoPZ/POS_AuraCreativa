@@ -1,118 +1,174 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import configService from '@/services/configService';
+import { useConfigStore } from '@/stores/config';
 import Swal from 'sweetalert2';
 
-const config = ref({
+const configStore = useConfigStore();
+const loading = ref(false);
+const saving = ref(false);
+const previewImage = ref(null);
+const fileInput = ref(null);
+const API_URL = import.meta.env.VITE_API_URL || 'http://20.168.11.169:3001/api';
+const BASE_URL = API_URL.replace('/api', '');
+const form = ref({
     NombreTienda: '',
     Direccion: '',
     Telefono: '',
     MensajeTicket: '',
     RedSocial: '',
-    LogoUrl: ''
+    LogoFile: null
 });
-const loading = ref(false);
-const saving = ref(false);
 
-onMounted(async () => {
+const loadData = async () => {
     loading.value = true;
     try {
         const { data } = await configService.getConfig();
-        config.value = data;
+        if (data) {
+            form.value.NombreTienda = data.NombreTienda || '';
+            form.value.Direccion = data.Direccion || '';
+            form.value.Telefono = data.Telefono || '';
+            form.value.MensajeTicket = data.MensajeTicket || '';
+            form.value.RedSocial = data.RedSocial || '';
+            if (data.LogoUrl) {
+                previewImage.value = `${BASE_URL}/assets/${data.LogoUrl}`;
+            }
+        }
     } catch (error) {
         console.error(error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Oops...',
-            text: 'No se pudo cargar la configuración de la tienda.',
-            confirmButtonColor: '#0d6efd'
-        });
+        Swal.fire('Error', 'No se pudo cargar la configuración.', 'error');
     } finally {
         loading.value = false;
     }
-});
+};
+
+const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        if (!file.type.startsWith('image/')) {
+            return Swal.fire('Archivo inválido', 'Por favor selecciona una imagen (JPG, PNG).', 'warning');
+        }
+        form.value.LogoFile = file;
+        previewImage.value = URL.createObjectURL(file);
+    }
+};
+
+const triggerFileInput = () => {
+    fileInput.value.click();
+};
 
 const guardarCambios = async () => {
     saving.value = true;
     try {
-        await configService.updateConfig(config.value);
+        const formData = new FormData();
+        formData.append('NombreTienda', form.value.NombreTienda);
+        formData.append('Direccion', form.value.Direccion);
+        formData.append('Telefono', form.value.Telefono);
+        formData.append('MensajeTicket', form.value.MensajeTicket);
+        formData.append('RedSocial', form.value.RedSocial);
+        if (form.value.LogoFile) {
+            formData.append('Logo', form.value.LogoFile);
+        }
+        await configService.updateConfig(formData);
+        configStore.isLoaded = false;
+        await configStore.fetchConfig();
         Swal.fire({
             icon: 'success',
             title: '¡Guardado!',
-            text: 'La información de la tienda ha sido actualizada.',
+            text: 'La identidad de la tienda se actualizó correctamente.',
             showConfirmButton: false,
-            timer: 1500,
-            timerProgressBar: true
+            timer: 1500
         });
     } catch (error) {
         console.error(error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error al guardar',
-            text: error.response?.data?.msg || 'Ocurrió un problema en el servidor.',
-            confirmButtonColor: '#d63384'
-        });
+        Swal.fire('Error', 'No se pudieron guardar los cambios.', 'error');
     } finally {
         saving.value = false;
     }
 };
+
+onMounted(loadData);
 </script>
 
 <template>
     <div class="container py-4 fade-in">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2 class="fw-bold mb-1">Datos de la Tienda</h2>
-                <p class="text-muted m-0 small">Información general para tickets y encabezados.</p>
+                <h2 class="fw-bold mb-1">Identidad del Negocio</h2>
+                <p class="text-muted m-0 small">Personaliza el logo, nombre y datos de contacto.</p>
             </div>
         </div>
-        <div class="card minimal-card border-0 shadow-sm">
-            <div class="card-body p-4">
-                <form @submit.prevent="guardarCambios">
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <h5 class="fw-bold text-primary mb-3 border-bottom pb-2">
-                                <i class="fa-solid fa-store me-2"></i>Identidad
-                            </h5>
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">Nombre de la Tienda</label>
-                                <input type="text" v-model="config.NombreTienda" class="form-control minimal-input" required placeholder="Ej: Aura Creativa">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">Redes Sociales / Web</label>
-                                <input type="text" v-model="config.RedSocial" class="form-control minimal-input" placeholder="Ej: @auracreativa">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">URL del Logo (Opcional)</label>
-                                <input type="text" v-model="config.LogoUrl" class="form-control minimal-input" placeholder="http://...">
-                            </div>
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-10">
+                <div class="card minimal-card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <div v-if="loading" class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
                         </div>
-                        <div class="col-md-6">
-                            <h5 class="fw-bold text-primary mb-3 border-bottom pb-2">
-                                <i class="fa-solid fa-receipt me-2"></i>Contacto y Ticket
-                            </h5>
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">Dirección Física</label>
-                                <textarea v-model="config.Direccion" class="form-control minimal-input" rows="2" placeholder="Calle, Número, Colonia..."></textarea>
+                        <form v-else @submit.prevent="guardarCambios">
+                            <div class="row g-4">
+                                <div class="col-12 text-center mb-2">
+                                    <div class="position-relative d-inline-block">
+                                        <div class="border rounded-3 p-1 bg-white shadow-sm" style="width: 140px; height: 140px;">
+                                            <img :src="previewImage || '/placeholder-logo.png'" 
+                                                 class="w-100 h-100 object-fit-contain rounded-2"
+                                                 alt="Logo Tienda">
+                                        </div>
+                                        <button type="button" 
+                                                @click="triggerFileInput"
+                                                class="btn btn-primary btn-sm position-absolute bottom-0 end-0 rounded-circle shadow border-2 border-white"
+                                                style="width: 36px; height: 36px; transform: translate(25%, 25%);"
+                                                title="Cambiar Logo">
+                                            <i class="fa-solid fa-camera"></i>
+                                        </button>
+                                        <input type="file" ref="fileInput" @change="handleFileUpload" hidden accept="image/*">
+                                    </div>
+                                    <p class="small text-muted mt-3 mb-0">Haz clic en la cámara para subir tu logo.</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold text-primary text-uppercase small border-bottom pb-2 mb-3">
+                                        Datos Generales
+                                    </h6>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold text-muted">Nombre de la Tienda</label>
+                                        <input type="text" v-model="form.NombreTienda" class="form-control minimal-input" required placeholder="Ej: Mi Negocio">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold text-muted">Redes Sociales / Web</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-hashtag text-muted"></i></span>
+                                            <input type="text" v-model="form.RedSocial" class="form-control border-start-0 ps-0 minimal-input" placeholder="@mi_negocio">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="fw-bold text-primary text-uppercase small border-bottom pb-2 mb-3">
+                                        Contacto y Ticket
+                                    </h6>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold text-muted">Teléfono / WhatsApp</label>
+                                        <input type="text" v-model="form.Telefono" class="form-control minimal-input" placeholder="55 1234 5678">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold text-muted">Dirección Física</label>
+                                        <textarea v-model="form.Direccion" class="form-control minimal-input" rows="2" placeholder="Calle, Número, Ciudad..."></textarea>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-bold text-muted">Mensaje al pie del Ticket</label>
+                                    <input type="text" v-model="form.MensajeTicket" class="form-control minimal-input" placeholder="¡Gracias por su compra! Vuelva pronto.">
+                                </div>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">Teléfono / WhatsApp</label>
-                                <input type="text" v-model="config.Telefono" class="form-control minimal-input" placeholder="55 1234 5678">
+                            <div class="d-flex justify-content-end mt-4 pt-3 border-top">
+                                <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm" :disabled="saving">
+                                    <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
+                                    <i v-else class="fa-solid fa-floppy-disk me-2"></i>
+                                    {{ saving ? 'Guardando...' : 'Guardar Cambios' }}
+                                </button>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">Mensaje al pie del Ticket</label>
-                                <textarea v-model="config.MensajeTicket" class="form-control minimal-input" rows="2" placeholder="Gracias por su compra..."></textarea>
-                            </div>
-                        </div>
+                        </form>
                     </div>
-                    <div class="d-flex justify-content-end mt-4 pt-3 border-top">
-                        <button type="submit" class="btn btn-primary px-4 fw-bold" :disabled="saving">
-                            <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
-                            <i v-else class="fa-solid fa-save me-2"></i>
-                            {{ saving ? 'Guardando...' : 'Guardar Cambios' }}
-                        </button>
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>

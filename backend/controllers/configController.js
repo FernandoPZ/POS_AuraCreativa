@@ -11,7 +11,8 @@ exports.getConfig = async (req, res) => {
                 Direccion: '', 
                 Telefono: '', 
                 MensajeTicket: '',
-                RedSocial: ''
+                RedSocial: '',
+                LogoUrl: null
             });
         }
         res.json(result.rows[0]);
@@ -21,39 +22,60 @@ exports.getConfig = async (req, res) => {
     }
 };
 
-// 2. ACTUALIZAR CONFIGURACIÓN
+// 2. ACTUALIZAR (O CREAR) CONFIGURACIÓN
 exports.updateConfig = async (req, res) => {
     const { 
         NombreTienda, 
         Direccion, 
         Telefono, 
         MensajeTicket, 
-        RedSocial,
-        LogoUrl 
+        RedSocial 
     } = req.body;
     const IdUsuario = req.user.IdUsuario;
+    const logoNuevo = req.file ? req.file.filename : null;
+    const client = await pool.connect();
     try {
-        const query = `
-            UPDATE "Configuracion"
-            SET "NombreTienda" = $1,
-                "Direccion" = $2,
-                "Telefono" = $3,
-                "MensajeTicket" = $4,
-                "RedSocial" = $5,
-                "LogoUrl" = $6
-            WHERE "IdConfig" = (SELECT "IdConfig" FROM "Configuracion" LIMIT 1)
-            RETURNING *;
-        `;
-        const result = await pool.query(query, [
-            NombreTienda, Direccion, Telefono, MensajeTicket, RedSocial, LogoUrl
-        ]);
-        // Registrar en bitácora
-        if (IdUsuario) {
-            await registrarAccion(IdUsuario, 'CONFIG_UPDATE', 'Actualizó los datos generales de la tienda');
+        await client.query('BEGIN');
+        const checkRes = await client.query('SELECT "IdConfig", "LogoUrl" FROM "Configuracion" LIMIT 1');
+        let result;
+        if (checkRes.rows.length === 0) {
+            const insertQuery = `
+                INSERT INTO "Configuracion" 
+                ("NombreTienda", "Direccion", "Telefono", "MensajeTicket", "RedSocial", "LogoUrl")
+                VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING *;
+            `;
+            result = await client.query(insertQuery, [
+                NombreTienda, Direccion, Telefono, MensajeTicket, RedSocial, logoNuevo
+            ]);
+        } else {
+            const currentConfig = checkRes.rows[0];
+            const logoFinal = logoNuevo || currentConfig.LogoUrl;
+            const updateQuery = `
+                UPDATE "Configuracion"
+                    SET "NombreTienda" = $1,
+                        "Direccion" = $2,
+                        "Telefono" = $3,
+                        "MensajeTicket" = $4,
+                        "RedSocial" = $5,
+                        "LogoUrl" = $6
+                    WHERE "IdConfig" = $7
+                    RETURNING *;
+            `;
+            result = await client.query(updateQuery, [
+                NombreTienda, Direccion, Telefono, MensajeTicket, RedSocial, logoFinal, currentConfig.IdConfig
+            ]);
         }
-        res.json({ msg: 'Configuración actualizada correctamente', config: result.rows[0] });
+        await client.query('COMMIT');
+        if (IdUsuario) {
+            await registrarAccion(IdUsuario, 'CONFIG_UPDATE', 'Actualizó los datos generales y/o logo de la tienda');
+        }
+        res.json({ msg: 'Configuración guardada correctamente', config: result.rows[0] });
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Error al actualizar configuración:', error);
-        res.status(500).json({ msg: 'Error del servidor' });
+        res.status(500).json({ msg: 'Error del servidor al guardar configuración' });
+    } finally {
+        client.release();
     }
 };

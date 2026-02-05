@@ -1,16 +1,23 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useAuthStore } from '../stores/auth';
-import logoImg from '@/assets/logo01.png';
+import { ref, onMounted, computed } from 'vue';
+import { useAuthStore } from '@/stores/auth';
+import { useConfigStore } from '@/stores/config';
+import defaultLogo from '@/assets/logo_default.png'; 
 
 const authStore = useAuthStore();
+const configStore = useConfigStore();
 const email = ref('');
 const password = ref('');
 const errorMessage = ref('');
 const loading = ref(false);
 const isDarkMode = ref(false);
+const logoDisplay = computed(() => {
+    return configStore.fullLogoUrl || defaultLogo;
+});
+const nombreTienda = computed(() => configStore.nombreTienda || 'Sistema POS');
 
 onMounted(() => {
+    configStore.fetchConfig();
     const savedTheme = localStorage.getItem('theme') || 'light';
     isDarkMode.value = savedTheme === 'dark';
     document.documentElement.setAttribute('data-bs-theme', savedTheme);
@@ -42,23 +49,21 @@ const handleLogin = async () => {
 
 <template>
   <div class="d-flex justify-content-center align-items-center min-vh-100 minimal-bg">
-    
     <div class="login-container">
         <div class="text-center mb-4">
             <img 
-                :src="logoImg" 
-                alt="Aura Creativa Logo" 
-                class="img-fluid mb-2"
-                style="max-height: 200px; width: auto;" 
+                :src="logoDisplay" 
+                :alt="nombreTienda" 
+                class="img-fluid mb-2 logo-anim"
+                style="max-height: 180px; width: auto; object-fit: contain;" 
             />
-        </div>
-
+            </div>
         <div class="card minimal-card p-4 shadow-sm mx-auto" style="max-width: 380px; width: 100%;">
             <div class="card-body">
-                
+                <h5 class="text-center mb-4 fw-bold text-muted">Bienvenido</h5>
                 <form @submit.prevent="handleLogin">
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Email</label>
+                        <label class="form-label small fw-bold text-muted">Email</label>
                         <input 
                             type="email" 
                             class="form-control minimal-input" 
@@ -67,9 +72,8 @@ const handleLogin = async () => {
                             required
                         >
                     </div>
-
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Contraseña</label>
+                        <label class="form-label small fw-bold text-muted">Contraseña</label>
                         <input 
                             type="password" 
                             class="form-control minimal-input" 
@@ -78,34 +82,29 @@ const handleLogin = async () => {
                             required
                         >
                     </div>
-
                     <div v-if="errorMessage" class="alert alert-danger py-2 small text-center" role="alert">
-                        {{ errorMessage }}
+                        <i class="fa-solid fa-circle-exclamation me-1"></i> {{ errorMessage }}
                     </div>
-
-                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold mt-2" :disabled="loading">
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold mt-2 shadow-sm" :disabled="loading">
                         <span v-if="loading" class="spinner-border spinner-border-sm me-2"></span>
                         {{ loading ? 'Verificando...' : 'Iniciar Sesión' }}
                     </button>
-
-                    <div class="text-center mt-4">
+                    <div class="text-center mt-4 border-top pt-3">
                         <button 
                             type="button" 
                             @click="toggleTheme" 
                             class="btn btn-link text-decoration-none text-muted p-0 small"
                             style="font-size: 0.85rem;"
                         >
-                            <span v-if="isDarkMode"><i class="fa-solid fa-sun"></i> Cambiar a Modo Claro</span>
-                            <span v-else><i class="fa-solid fa-moon"></i> Cambiar a Modo Oscuro</span>
+                            <span v-if="isDarkMode"><i class="fa-solid fa-sun me-1"></i> Modo Claro</span>
+                            <span v-else><i class="fa-solid fa-moon me-1"></i> Modo Oscuro</span>
                         </button>
                     </div>
-
                 </form>
             </div>
         </div>
-        
-        <div class="text-center mt-3 text-muted" style="font-size: 0.75rem;">
-            &copy; 2026 Aura Creativa v1.0.0
+        <div class="text-center mt-3 text-muted opacity-75" style="font-size: 0.75rem;">
+            &copy; {{ new Date().getFullYear() }} {{ nombreTienda }} v1.1
         </div>
     </div>
   </div>
@@ -113,12 +112,18 @@ const handleLogin = async () => {
 
 <style scoped>
 .login-container {
-    animation: fadeIn 0.5s ease-out;
+    animation: fadeIn 0.6s ease-out;
     width: 100%;
     padding: 1rem;
 }
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
+}
+.logo-anim {
+    transition: transform 0.3s ease;
+}
+.logo-anim:hover {
+    transform: scale(1.02);
 }
 </style>

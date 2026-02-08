@@ -15,7 +15,7 @@ frontend/dist/
 frontend/.vite/
 
 # Carpetas de compilación del back
-frontend/dist/
+backend/dist/
 
 # Editor
 .vscode/

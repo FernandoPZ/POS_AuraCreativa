@@ -1,5 +1,3 @@
-config.js
-
 import { defineStore } from 'pinia';
 import configService from '@/services/configService';
 

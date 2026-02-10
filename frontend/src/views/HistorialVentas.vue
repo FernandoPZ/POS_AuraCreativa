@@ -1,16 +1,23 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import { useConfigStore } from '@/stores/config';
 import ventaService from '@/services/ventaService';
+import comboService from '@/services/comboService';
+import puntosEntregaService from '@/services/puntosEntregaService';
+import { generarTicketPDF } from '@/utils/ticketGenerator';
 import Swal from 'sweetalert2';
 import { Modal } from 'bootstrap';
 
 const ventas = ref([]);
 const detalleActual = ref([]);
+const combosCatalogo = ref([]);
+const puntosEntrega = ref([]); 
 const ventaSeleccionada = ref({});
 const loading = ref(false);
 const loadingDetalle = ref(false);
 const authStore = useAuthStore();
+const configStore = useConfigStore();
 let detalleModal = null;
 const API_URL = import.meta.env.VITE_API_URL || 'http://20.168.11.169:3001/api';
 const loadVentas = async () => {
@@ -25,6 +32,24 @@ const loadVentas = async () => {
         loading.value = false;
     }
 };
+const loadCatalogos = async () => {
+    try {
+        const [comboRes, puntosRes] = await Promise.all([
+            comboService.getCombos(),
+            puntosEntregaService.getPuntos()
+        ]);
+        combosCatalogo.value = comboRes.data;
+        puntosEntrega.value = puntosRes.data;
+        if (!configStore.isLoaded) await configStore.fetchConfig();
+    } catch (error) {
+        console.error("Error cargando catálogos auxiliares", error);
+    }
+};
+const getLinkMapa = (nombrePunto) => {
+    if (!nombrePunto) return null;
+    const punto = puntosEntrega.value.find(p => p.NombrePunto === nombrePunto);
+    return punto ? punto.LinkGoogleMaps : null;
+};
 const verDetalle = async (venta) => {
     ventaSeleccionada.value = venta;
     detalleActual.value = [];
@@ -35,20 +60,81 @@ const verDetalle = async (venta) => {
     detalleModal.show();
     try {
         const { data } = await ventaService.getDetalleVenta(venta.IdVenta);
-        detalleActual.value = data;
+        detalleActual.value = data.map(item => {
+            if (item.Tipo === 'COMBO') {
+                const comboOriginal = combosCatalogo.value.find(c => 
+                    c.IdCombo === item.IdProducto || c.Nombre === item.Producto
+                );
+                if (comboOriginal && comboOriginal.ingredientes) {
+                    return { ...item, ingredientes: comboOriginal.ingredientes, esCombo: true };
+                }
+                return { ...item, esCombo: true, ingredientes: [] };
+            }
+            return { ...item, esCombo: false };
+        });
+        
     } catch (error) {
         Swal.fire('Error', 'No se pudieron cargar los detalles.', 'error');
     } finally {
         loadingDetalle.value = false;
     }
 };
-const reimprimirTicket = (idVenta) => {
-    if (!idVenta) return;
-    const ticketUrl = `${API_URL}/ventas/${idVenta}/ticket?token=${authStore.token}`;
-    window.open(ticketUrl, '_blank');
+const reimprimirTicket = async (venta) => {
+    let ventaObj = venta;
+    if (typeof venta === 'number' || typeof venta === 'string') {
+        ventaObj = ventas.value.find(v => v.IdVenta === venta);
+    }
+    if (!ventaObj) return;
+    try {
+        Swal.fire({ title: 'Generando Ticket...', didOpen: () => Swal.showLoading() });
+        const { data: detalles } = await ventaService.getDetalleVenta(ventaObj.IdVenta);
+        const carritoReconstruido = detalles.map(item => {
+            let ingredientes = [];
+            if (item.Tipo === 'COMBO') {
+                const c = combosCatalogo.value.find(x => x.IdCombo === item.IdProducto || x.Nombre === item.Producto);
+                if (c) ingredientes = c.ingredientes;
+            }
+            return {
+                cantidad: item.Cantidad,
+                nombre: item.Producto,
+                precio: item.PrecioUnitario,
+                esCombo: item.Tipo === 'COMBO',
+                ingredientes: ingredientes
+            };
+        });
+        const punto = puntosEntrega.value.find(p => p.NombrePunto === ventaObj.PuntoEntrega);
+        const linkMaps = punto ? punto.LinkGoogleMaps : null;
+        const logo = configStore.fullLogoUrl || null;
+        const configData = {
+            NombreTienda: configStore.nombreTienda,
+            Direccion: configStore.direccion,
+            Telefono: configStore.telefono,
+            MensajeTicket: configStore.mensajeTicket
+        };
+        await generarTicketPDF(
+            ventaObj.IdVenta,
+            ventaObj.Vendedor,
+            carritoReconstruido,
+            ventaObj.Total,
+            logo,
+            null,
+            null,
+            configData,
+            ventaObj.ClienteNombre,
+            linkMaps,
+            formatDate(ventaObj.Fecha)
+        );
+        Swal.close();
+    } catch (e) {
+        console.error(e);
+        Swal.fire('Error', 'No se pudo generar el ticket.', 'error');
+    }
 };
 
-onMounted(loadVentas);
+onMounted(() => {
+    loadVentas();
+    loadCatalogos();
+});
 
 const formatDate = (dateString) => {
     if (!dateString) return '-';
@@ -96,25 +182,19 @@ const formatDate = (dateString) => {
                                     <div class="fw-bold text-dark">#{{ v.IdVenta }}</div>
                                     <small class="text-muted">{{ formatDate(v.Fecha) }}</small>
                                 </td>
-                                <td>
-                                    <div class="fw-bold">{{ v.ClienteNombre || 'Público General' }}</div>
-                                </td>
+                                <td><div class="fw-bold">{{ v.ClienteNombre || 'Público General' }}</div></td>
                                 <td>
                                     <span class="badge bg-light text-dark border">
                                         <i class="fa-solid fa-map-pin me-1 text-danger"></i> {{ v.PuntoEntrega || 'Local' }}
                                     </span>
                                 </td>
-                                <td class="small text-muted">
-                                    {{ v.Vendedor || 'Sistema' }}
-                                </td>
-                                <td class="fw-bold text-success">
-                                    ${{ Number(v.Total).toFixed(2) }}
-                                </td>
+                                <td class="small text-muted">{{ v.Vendedor || 'Sistema' }}</td>
+                                <td class="fw-bold text-success">${{ Number(v.Total).toFixed(2) }}</td>
                                 <td class="text-end pe-4">
                                     <button @click="verDetalle(v)" class="btn btn-sm btn-outline-secondary border-0 me-2" title="Ver Detalles">
                                         <i class="fa-solid fa-eye"></i>
                                     </button>
-                                    <button @click="reimprimirTicket(v.IdVenta)" class="btn btn-sm btn-outline-primary border-0 bg-light-subtle" title="Reimprimir Ticket">
+                                    <button @click="reimprimirTicket(v)" class="btn btn-sm btn-outline-primary border-0 bg-light-subtle" title="Reimprimir Ticket">
                                         <i class="fa-solid fa-print"></i>
                                     </button>
                                 </td>
@@ -127,7 +207,6 @@ const formatDate = (dateString) => {
                 <small class="text-muted">Mostrando {{ ventas.length }} transacciones.</small>
             </div>
         </div>
-
         <div class="modal fade" id="modalDetalleVenta" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 shadow">
@@ -139,11 +218,38 @@ const formatDate = (dateString) => {
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
+                        <div class="bg-light p-3 rounded mb-3 small border">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <span class="text-muted d-block text-uppercase" style="font-size: 0.7rem;">Cliente</span>
+                                    <span class="fw-bold text-dark"><i class="fa-solid fa-user me-1 text-secondary"></i>{{ ventaSeleccionada.ClienteNombre || 'Público General' }}</span>
+                                </div>
+                                <div class="col-6">
+                                    <span class="text-muted d-block text-uppercase" style="font-size: 0.7rem;">Atendido por</span>
+                                    <span class="fw-bold text-dark"><i class="fa-solid fa-user-tag me-1 text-secondary"></i>{{ ventaSeleccionada.Vendedor || 'Sistema' }}</span>
+                                </div>
+                                <div class="col-12 border-top pt-2 mt-2">
+                                    <span class="text-muted d-block text-uppercase" style="font-size: 0.7rem;">Punto de Entrega</span>
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <span class="fw-bold text-dark">
+                                            <i class="fa-solid fa-map-location-dot me-1 text-danger"></i>
+                                            {{ ventaSeleccionada.PuntoEntrega }}
+                                        </span>
+                                        <a v-if="getLinkMapa(ventaSeleccionada.PuntoEntrega)" 
+                                           :href="getLinkMapa(ventaSeleccionada.PuntoEntrega)" 
+                                           target="_blank" 
+                                           class="btn btn-sm btn-link text-decoration-none p-0 fw-bold">
+                                            Ver Mapa <i class="fa-solid fa-arrow-up-right-from-square ms-1"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div v-if="loadingDetalle" class="text-center py-4">
                             <div class="spinner-border spinner-border-sm text-primary"></div>
                         </div>
                         <div v-else class="table-responsive">
-                            <table class="table table-sm align-middle">
+                            <table class="table table-sm align-middle mb-0">
                                 <thead class="text-muted small bg-light">
                                     <tr>
                                         <th class="ps-3">Producto</th>
@@ -152,13 +258,18 @@ const formatDate = (dateString) => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="(item, idx) in detalleActual" :key="idx">
-                                        <td class="ps-3">
+                                    <tr v-for="(item, idx) in detalleActual" :key="idx" :class="{'border-bottom-0': item.esCombo}">
+                                        <td class="ps-3 py-2">
                                             <div class="fw-bold small">{{ item.Producto }}</div>
-                                            <small v-if="item.Tipo === 'COMBO'" class="badge bg-primary" style="font-size: 0.6em;">PACK</small>
+                                            <span v-if="item.esCombo" class="badge bg-primary" style="font-size: 0.6em;">PACK</span>
+                                            <div v-if="item.esCombo && item.ingredientes && item.ingredientes.length > 0" class="mt-1 ps-2 border-start border-2 ms-1">
+                                                <div v-for="(ing, i) in item.ingredientes" :key="i" class="text-muted fst-italic" style="font-size: 0.75rem;">
+                                                    • {{ ing.Cantidad }} {{ ing.NomArticulo }}
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td class="text-center small">x{{ item.Cantidad }}</td>
-                                        <td class="text-end pe-3 fw-bold small">${{ Number(item.PrecioUnitario).toFixed(2) }}</td>
+                                        <td class="text-center small align-top py-2">x{{ item.Cantidad }}</td>
+                                        <td class="text-end pe-3 fw-bold small align-top py-2">${{ Number(item.PrecioUnitario).toFixed(2) }}</td>
                                     </tr>
                                 </tbody>
                                 <tfoot class="border-top">
@@ -174,7 +285,7 @@ const formatDate = (dateString) => {
                     </div>
                     <div class="modal-footer border-top-0 pt-0">
                         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
-                        <button @click="reimprimirTicket(ventaSeleccionada.IdVenta)" class="btn btn-primary btn-sm fw-bold">
+                        <button @click="reimprimirTicket(ventaSeleccionada)" class="btn btn-primary btn-sm fw-bold">
                             <i class="fa-solid fa-print me-2"></i>Ticket
                         </button>
                     </div>

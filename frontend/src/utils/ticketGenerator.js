@@ -21,7 +21,7 @@ export const generarTicketPDF = async (
 
     console.log("Generando Ticket. LinkGoogleMaps:", LinkGoogleMaps);
     // --- 1. CÁLCULO DE ALTURA DINÁMICA ---
-    let estimatedHeight = 50; // Base
+    let estimatedHeight = 60; // Base
     carrito.forEach(item => {
         estimatedHeight += 5;
         if (item.esCombo && item.ingredientes?.length > 0) {
@@ -38,12 +38,12 @@ export const generarTicketPDF = async (
         format: [80, estimatedHeight]
     });
     const centerX = 40;
-    let yPos = 5;
+    let yPos = 3;
     // Cargar Logo
     const imgTop = await cargarImagen(logoTopSrc);
     // --- 3. LOGO / CABECERA ---
     if (imgTop) {
-        const imgWidth = 30; 
+        const imgWidth = 20; 
         const imgHeight = (imgTop.height * imgWidth) / imgTop.width;
         doc.addImage(imgTop, 'PNG', (80 - imgWidth)/2, yPos, imgWidth, imgHeight);
         yPos += imgHeight + 5;

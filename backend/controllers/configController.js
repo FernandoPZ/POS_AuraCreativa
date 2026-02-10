@@ -1,5 +1,8 @@
 const { pool } = require('../config/db');
 const { registrarAccion } = require('../utils/logger');
+const sharp = require('sharp'); 
+const path = require('path');
+const fs = require('fs');
 
 // 1. OBTENER CONFIGURACIÓN
 exports.getConfig = async (req, res) => {
@@ -32,25 +35,52 @@ exports.updateConfig = async (req, res) => {
         RedSocial 
     } = req.body;
     const IdUsuario = req.user.IdUsuario;
-    const logoNuevo = req.file ? req.file.filename : null;
+    let logoFinal = null;
+    // --- PROCESAMIENTO DE IMAGEN CON SHARP ---
+    if (req.file) {
+        try {
+            const originalPath = req.file.path;
+            const filename = req.file.filename;
+            const outputFilename = `sq-${filename}`;
+            const outputPath = path.join(req.file.destination, outputFilename);
+            await sharp(originalPath)
+                .resize(500, 500, {
+                    fit: sharp.fit.cover,
+                    position: sharp.strategy.entropy
+                })
+                .toFile(outputPath);
+            logoFinal = outputFilename;
+            fs.unlink(originalPath, (err) => {
+                if (err) console.error("Error eliminando original:", err);
+            });
+        } catch (error) {
+            console.error("Error procesando imagen con Sharp:", error);
+            logoFinal = req.file.filename;
+        }
+    }
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
         const checkRes = await client.query('SELECT "IdConfig", "LogoUrl" FROM "Configuracion" LIMIT 1');
         let result;
+        const params = [
+            NombreTienda?.substring(0, 50), 
+            Direccion?.substring(0, 200), 
+            Telefono?.substring(0, 20), 
+            MensajeTicket?.substring(0, 150), 
+            RedSocial?.substring(0, 100)
+        ];
         if (checkRes.rows.length === 0) {
             const insertQuery = `
                 INSERT INTO "Configuracion" 
-                ("NombreTienda", "Direccion", "Telefono", "MensajeTicket", "RedSocial", "LogoUrl")
-                VALUES ($1, $2, $3, $4, $5, $6)
-                RETURNING *;
+                    ("NombreTienda", "Direccion", "Telefono", "MensajeTicket", "RedSocial", "LogoUrl")
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                    RETURNING *;
             `;
-            result = await client.query(insertQuery, [
-                NombreTienda, Direccion, Telefono, MensajeTicket, RedSocial, logoNuevo
-            ]);
+            result = await client.query(insertQuery, [...params, logoFinal]);
         } else {
             const currentConfig = checkRes.rows[0];
-            const logoFinal = logoNuevo || currentConfig.LogoUrl;
+            const logoToSave = logoFinal || currentConfig.LogoUrl;
             const updateQuery = `
                 UPDATE "Configuracion"
                     SET "NombreTienda" = $1,
@@ -62,9 +92,7 @@ exports.updateConfig = async (req, res) => {
                     WHERE "IdConfig" = $7
                     RETURNING *;
             `;
-            result = await client.query(updateQuery, [
-                NombreTienda, Direccion, Telefono, MensajeTicket, RedSocial, logoFinal, currentConfig.IdConfig
-            ]);
+            result = await client.query(updateQuery, [...params, logoToSave, currentConfig.IdConfig]);
         }
         await client.query('COMMIT');
         if (IdUsuario) {

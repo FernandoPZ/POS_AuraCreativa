@@ -48,6 +48,9 @@ const handleFileUpload = (event) => {
         if (!file.type.startsWith('image/')) {
             return Swal.fire('Archivo inválido', 'Por favor selecciona una imagen (JPG, PNG).', 'warning');
         }
+        if (file.size > 2 * 1024 * 1024) {
+            return Swal.fire('Archivo muy grande', 'El logo debe pesar menos de 2MB.', 'warning');
+        }
         form.value.LogoFile = file;
         previewImage.value = URL.createObjectURL(file);
     }
@@ -123,7 +126,10 @@ onMounted(loadData);
                                         </button>
                                         <input type="file" ref="fileInput" @change="handleFileUpload" hidden accept="image/*">
                                     </div>
-                                    <p class="small text-muted mt-3 mb-0">Haz clic en la cámara para subir tu logo.</p>
+                                    <p class="small text-muted mt-3 mb-0">
+                                        <i class="fa-solid fa-circle-info me-1"></i>
+                                        Para mejor visualización, sube una imagen cuadrada (1:1). El sistema la ajustará automáticamente.
+                                    </p>
                                 </div>
                                 <div class="col-md-6">
                                     <h6 class="fw-bold text-primary text-uppercase small border-bottom pb-2 mb-3">
@@ -131,13 +137,13 @@ onMounted(loadData);
                                     </h6>
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold text-muted">Nombre de la Tienda</label>
-                                        <input type="text" v-model="form.NombreTienda" class="form-control minimal-input" required placeholder="Ej: Mi Negocio">
+                                        <input type="text" v-model="form.NombreTienda" class="form-control minimal-input" required placeholder="Ej: Mi Negocio" maxlength="50">
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold text-muted">Redes Sociales / Web</label>
                                         <div class="input-group">
                                             <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-hashtag text-muted"></i></span>
-                                            <input type="text" v-model="form.RedSocial" class="form-control border-start-0 ps-0 minimal-input" placeholder="@mi_negocio">
+                                            <input type="text" v-model="form.RedSocial" class="form-control border-start-0 ps-0 minimal-input" placeholder="@mi_negocio" maxlength="100">
                                         </div>
                                     </div>
                                 </div>
@@ -147,11 +153,11 @@ onMounted(loadData);
                                     </h6>
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold text-muted">Teléfono / WhatsApp</label>
-                                        <input type="text" v-model="form.Telefono" class="form-control minimal-input" placeholder="55 1234 5678">
+                                        <input type="text" v-model="form.Telefono" class="form-control minimal-input" placeholder="55 1234 5678" maxlength="10">
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold text-muted">Dirección Física</label>
-                                        <textarea v-model="form.Direccion" class="form-control minimal-input" rows="2" placeholder="Calle, Número, Ciudad..."></textarea>
+                                        <textarea v-model="form.Direccion" class="form-control minimal-input" rows="2" placeholder="Calle, Número, Ciudad..." maxlength="200"></textarea>
                                     </div>
                                 </div>
                                 <div class="col-12">

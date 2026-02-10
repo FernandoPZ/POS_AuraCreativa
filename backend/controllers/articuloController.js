@@ -1,5 +1,30 @@
 const { pool } = require('../config/db');
 const { registrarAccion } = require('../utils/logger');
+const sharp = require('sharp');
+const path = require('path');
+const fs = require('fs');
+const procesarImagen = async (file) => {
+    if (!file) return null;
+    try {
+        const originalPath = file.path;
+        const filename = file.filename;
+        const outputFilename = `sq-${filename}`;
+        const outputPath = path.join(file.destination, outputFilename);
+        await sharp(originalPath)
+            .resize(500, 500, {
+                fit: sharp.fit.cover,
+                position: sharp.strategy.entropy
+            })
+            .toFile(outputPath);
+        fs.unlink(originalPath, (err) => {
+            if (err) console.error("Error eliminando original:", err);
+        });
+        return outputFilename;
+    } catch (error) {
+        console.error("Error Sharp:", error);
+        return file.filename;
+    }
+};
 
 // 1. OBTENER ARTÍCULOS
 exports.getArticulos = async (req, res) => {
@@ -21,11 +46,11 @@ exports.getArticulos = async (req, res) => {
                    CS."CantidadMaxima",
                    CS."CantidadMinima",
                    P."NomProveedor"
-            FROM "Articulos" AS A
-            LEFT JOIN "CfgStock" AS CS ON A."IdCfgStock" = CS."IdCfgStock"
-            LEFT JOIN "Proveedores" AS P ON A."IdProveedor" = P."IdProveedor"
-            WHERE A."Activo" = true 
-            ORDER BY A."NomArticulo" ASC
+                FROM "Articulos" AS A
+                LEFT JOIN "CfgStock" AS CS ON A."IdCfgStock" = CS."IdCfgStock"
+                LEFT JOIN "Proveedores" AS P ON A."IdProveedor" = P."IdProveedor"
+                WHERE A."Activo" = true 
+                ORDER BY A."NomArticulo" ASC
         `);
         res.json(result.rows);
     } catch (error) {
@@ -57,9 +82,9 @@ exports.getArticuloById = async (req, res) => {
                    A."Imagen",
                    CS."CantidadMaxima",
                    CS."CantidadMinima"
-            FROM "Articulos" AS A
-            LEFT JOIN "CfgStock" AS CS ON A."IdCfgStock" = CS."IdCfgStock"
-            WHERE A."IdArticulo" = $1 AND A."Activo" = true`, 
+                FROM "Articulos" AS A
+                LEFT JOIN "CfgStock" AS CS ON A."IdCfgStock" = CS."IdCfgStock"
+                WHERE A."IdArticulo" = $1 AND A."Activo" = true`, 
             [id]
         );
         if (result.rows.length === 0) return res.status(404).json({ msg: 'Artículo no encontrado.' });
@@ -78,12 +103,12 @@ exports.createArticulo = async (req, res) => {
         CodArticulo, NomArticulo, IdProveedor, CantidadMaxima, CantidadMinima, 
         PrecioVenta, Categoria, Talla, Color, DetallesTecnicos, NombreUnidad 
     } = req.body;
-    const nombreImagen = req.file ? req.file.filename : null;
-    const StockInicial = 0; 
-    const IdUsuario = req.user ? req.user.IdUsuario : null; 
+    const IdUsuario = req.user ? req.user.IdUsuario : null;
+    const StockInicial = 0;
+    const nombreImagen = await procesarImagen(req.file);
     if (!NomArticulo || !IdProveedor) return res.status(400).json({ msg: 'Nombre y Proveedor son obligatorios.' });
     const codigoFinal = CodArticulo && CodArticulo.trim() !== '' 
-        ? CodArticulo 
+        ? CodArticulo.substring(0, 50) 
         : `ART-${Date.now()}`;
     const client = await pool.connect();
     try {
@@ -104,11 +129,17 @@ exports.createArticulo = async (req, res) => {
         `;
         const result = await client.query(artQuery, [
             codigoFinal,
-            NomArticulo, IdProveedor, IdCfgStock, 
+            NomArticulo.substring(0, 100),
+            IdProveedor, 
+            IdCfgStock, 
             StockInicial, 
-            PrecioVenta || 0, IdUsuario,
-            Categoria || 'GENERAL', Talla || null, Color || null, DetallesTecnicos || '', 
-            NombreUnidad || 'Pza',
+            PrecioVenta || 0, 
+            IdUsuario,
+            (Categoria || 'GENERAL').substring(0, 50),
+            Talla ? Talla.substring(0, 20) : null,
+            Color ? Color.substring(0, 30) : null,
+            DetallesTecnicos ? DetallesTecnicos.substring(0, 255) : '',
+            (NombreUnidad || 'Pza').substring(0, 20),
             nombreImagen
         ]);
         await client.query('COMMIT');
@@ -133,6 +164,7 @@ exports.updateArticulo = async (req, res) => {
         Categoria, Talla, Color, DetallesTecnicos, NombreUnidad 
     } = req.body;
     const IdUsuario = req.user ? req.user.IdUsuario : null;
+    const nombreImagen = await procesarImagen(req.file);
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
@@ -146,7 +178,7 @@ exports.updateArticulo = async (req, res) => {
             [CantidadMaxima, CantidadMinima, artCheck.rows[0].IdCfgStock]
         );
         let result;
-        if (req.file) {
+        if (nombreImagen) {
             const updateQueryConImagen = `
                 UPDATE "Articulos" SET
                        "NomArticulo" = $1, "IdProveedor" = $2, "PrecioVenta" = $3,
@@ -157,8 +189,16 @@ exports.updateArticulo = async (req, res) => {
                 WHERE "IdArticulo" = $9 RETURNING *
             `;
             result = await client.query(updateQueryConImagen, [
-                NomArticulo, IdProveedor, PrecioVenta, Categoria, Talla, Color, DetallesTecnicos, 
-                NombreUnidad, id, req.file.filename
+                NomArticulo.substring(0, 100),
+                IdProveedor, 
+                PrecioVenta, 
+                (Categoria || 'GENERAL').substring(0, 50),
+                Talla ? Talla.substring(0, 20) : null,
+                Color ? Color.substring(0, 30) : null,
+                DetallesTecnicos ? DetallesTecnicos.substring(0, 255) : '',
+                (NombreUnidad || 'Pza').substring(0, 20),
+                id, 
+                nombreImagen
             ]);
         } else {
             const updateQuerySinImagen = `
@@ -170,8 +210,15 @@ exports.updateArticulo = async (req, res) => {
                 WHERE "IdArticulo" = $9 RETURNING *
             `;
             result = await client.query(updateQuerySinImagen, [
-                NomArticulo, IdProveedor, PrecioVenta, Categoria, Talla, Color, DetallesTecnicos, 
-                NombreUnidad, id
+                NomArticulo.substring(0, 100),
+                IdProveedor, 
+                PrecioVenta, 
+                (Categoria || 'GENERAL').substring(0, 50),
+                Talla ? Talla.substring(0, 20) : null,
+                Color ? Color.substring(0, 30) : null,
+                DetallesTecnicos ? DetallesTecnicos.substring(0, 255) : '',
+                (NombreUnidad || 'Pza').substring(0, 20),
+                id
             ]);
         }
         await client.query('COMMIT');

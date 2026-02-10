@@ -14,5 +14,8 @@ Thumbs.db
 frontend/dist/
 frontend/.vite/
 
+# Carpetas de compilación del back
+backend/dist/
+
 # Editor
 .vscode/

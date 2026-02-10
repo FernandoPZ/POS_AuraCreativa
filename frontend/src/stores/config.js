@@ -12,11 +12,16 @@ export const useConfigStore = defineStore('config', {
         isLoaded: false
     }),
     getters: {
-        fullLogoUrl: (state) => {
-            if (!state.logoUrl) return null;
-            const API_URL = import.meta.env.VITE_API_URL || 'http://20.168.11.169:3001/api';
-            const BASE_URL = API_URL.replace('/api', '');
-            return `${BASE_URL}/assets/${state.logoUrl}`;
+    fullLogoUrl: (state) => {
+        if (!state.logoUrl || state.logoUrl.toLowerCase() === 'logo01.png') {
+            return null;
+        }
+        if (state.logoUrl.startsWith('http')) {
+            return state.logoUrl;
+        }
+        const API_URL = import.meta.env.VITE_API_URL || 'https://pos.aura-creativa.com/api';
+        const BASE_URL = API_URL.replace('/api', '');
+        return `${BASE_URL}/assets/${state.logoUrl}`;
         }
     },
     actions: {

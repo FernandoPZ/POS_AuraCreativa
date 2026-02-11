@@ -6,11 +6,7 @@ exports.getVentas = async (req, res) => {
     const client = await pool.connect();
     try {
         const query = `
-            SELECT v."IdVenta", 
-                   v."Fecha", 
-                   v."Total", 
-                   v."Estado", 
-                   v."ClienteNombre",
+            SELECT v."IdVenta", v."Fecha", v."Total", v."Estado", v."ClienteNombre",
                    COALESCE(u."Nombre", 'Usuario Desconocido') as "Vendedor",
                    COALESCE(pe."NombrePunto", 'Mostrador General') as "PuntoEntrega"
             FROM "Ventas" v
@@ -35,11 +31,11 @@ exports.getVentaDetalles = async (req, res) => {
     const client = await pool.connect();
     try {
         const query = `
-            SELECT dv."Cantidad",
-                   dv."PrecioUnitario",
-                   dv."Subtotal",
+            SELECT dv."Cantidad", dv."PrecioUnitario", dv."Subtotal",
                    COALESCE(a."NomArticulo", c."Nombre", 'Producto Eliminado') as "Producto",
-                   CASE WHEN dv."IdCombo" IS NOT NULL THEN 'COMBO' ELSE 'ARTICULO' END as "Tipo"
+                   CASE WHEN dv."IdCombo" IS NOT NULL THEN 'COMBO' ELSE 'ARTICULO' END as "Tipo",
+                   dv."IdArticulo" as "IdProducto", 
+                   dv."IdCombo" as "IdComboRef"
             FROM "DetalleVentas" dv
             LEFT JOIN "Articulos" a ON dv."IdArticulo" = a."IdArticulo"
             LEFT JOIN "Combos" c ON dv."IdCombo" = c."IdCombo"
@@ -94,10 +90,17 @@ exports.crearVenta = async (req, res) => {
                     [item.id]
                 );
                 for (const ing of recetaRes.rows) {
-                    await client.query(
-                        `UPDATE "Articulos" SET "StockActual" = "StockActual" - $1 WHERE "IdArticulo" = $2`,
-                        [item.cantidad * ing.Cantidad, ing.IdArticulo]
+                    const cantidadNecesaria = item.cantidad * ing.Cantidad;
+                    const updateRes = await client.query(
+                        `UPDATE "Articulos" 
+                         SET "StockActual" = "StockActual" - $1 
+                         WHERE "IdArticulo" = $2 AND "StockActual" >= $1
+                         RETURNING "NomArticulo"`,
+                        [cantidadNecesaria, ing.IdArticulo]
                     );
+                    if (updateRes.rowCount === 0) {
+                        throw new Error(`Stock insuficiente de insumo para el combo: ${item.nombre}`);
+                    }
                 }
             } else {
                 await client.query(
@@ -105,10 +108,16 @@ exports.crearVenta = async (req, res) => {
                      VALUES ($1, $2, $3, $4, $5)`,
                     [idVenta, item.id, item.cantidad, item.precio, subtotal]
                 );
-                await client.query(
-                    `UPDATE "Articulos" SET "StockActual" = "StockActual" - $1 WHERE "IdArticulo" = $2`,
+                const updateRes = await client.query(
+                    `UPDATE "Articulos" 
+                     SET "StockActual" = "StockActual" - $1 
+                     WHERE "IdArticulo" = $2 AND "StockActual" >= $1
+                     RETURNING "NomArticulo"`,
                     [item.cantidad, item.id]
                 );
+                if (updateRes.rowCount === 0) {
+                    throw new Error(`Stock insuficiente para: ${item.nombre}`);
+                }
             }
         }
 
@@ -125,7 +134,7 @@ exports.crearVenta = async (req, res) => {
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Error en venta:', error);
-        res.status(500).json({ message: 'Error al procesar la venta: ' + error.message });
+        res.status(400).json({ msg: error.message || 'Error al procesar la venta.' });
     } finally {
         client.release();
     }

@@ -66,18 +66,32 @@ const catalogoFiltrado = computed(() => {
         tipo: 'ARTICULO',
         esCombo: false
     }));
-    const listaCombos = combos.value.map(c => ({
-        id: c.IdCombo,
-        nombre: c.Nombre,
-        codigo: c.Codigo,
-        precio: Number(c.Precio),
-        stock: 999,
-        imagen: null,
-        categoria: 'PAQUETES',
-        tipo: 'COMBO',
-        esCombo: true,
-        ingredientes: c.ingredientes || []
-    }));
+    const listaCombos = combos.value.map(c => {
+        let stockCalculado = 9999;
+        if (c.ingredientes && c.ingredientes.length > 0) {
+            const stocksPosibles = c.ingredientes.map(ing => {
+                const articuloFisico = articulos.value.find(a => a.IdArticulo === ing.IdArticulo);
+                if (!articuloFisico) return 0;
+                return Math.floor(articuloFisico.StockActual / ing.Cantidad);
+            });
+            stockCalculado = Math.min(...stocksPosibles);
+        } else {
+            stockCalculado = 0;
+        }
+        return {
+            id: c.IdCombo,
+            nombre: c.Nombre,
+            codigo: c.Codigo,
+            precio: Number(c.Precio),
+            stock: stockCalculado,
+            maxStock: stockCalculado,
+            imagen: c.Imagen,
+            categoria: 'PAQUETES',
+            tipo: 'COMBO',
+            esCombo: true,
+            ingredientes: c.ingredientes || []
+        };
+    });
     let todo = [...listaArticulos, ...listaCombos];
     if (filtros.busqueda) {
         const term = filtros.busqueda.toLowerCase();

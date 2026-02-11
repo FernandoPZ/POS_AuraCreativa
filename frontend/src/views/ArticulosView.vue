@@ -10,6 +10,8 @@ const loading = ref(false);
 const authStore = useAuthStore();
 const articuloSeleccionado = ref({});
 let modalDetalleInstance = null;
+const API_URL = import.meta.env.VITE_API_URL || 'http://20.168.11.169:3001/api';
+const BASE_URL = API_URL.replace('/api', ''); 
 const totalStock = computed(() => {
     return articulos.value.reduce((sum, item) => sum + Number(item.StockActual), 0);
 });
@@ -33,9 +35,6 @@ const verDetalleProducto = (articulo) => {
         modalDetalleInstance.show();
     }
 };
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://20.168.11.169:3001/api';
-const BASE_URL = API_URL.replace('/api', ''); 
 
 onMounted(loadArticulos);
 
@@ -68,6 +67,7 @@ const getCategoriaClass = (cat) => {
     if (c === 'TEXTIL') return 'bg-info text-dark';
     if (c === 'INSUMOS') return 'bg-warning text-dark';
     if (c === 'TAZAS') return 'bg-success';
+    if (c === 'GORRAS') return 'bg-primary';
     return 'bg-secondary';
 };
 const getStockColor = (art) => {
@@ -137,7 +137,7 @@ const getBadgeStyle = (nombreColor) => {
                                 <td class="ps-4 fw-bold small text-muted">{{ articulo.CodArticulo || '#' + articulo.IdArticulo }}</td>
                                 <td class="cursor-pointer" @click="verDetalleProducto(articulo)" title="Clic para ver detalle">
                                     <div class="d-flex align-items-center">
-                                        <div class="me-3 border rounded overflow-hidden d-flex align-items-center justify-content-center bg-light" 
+                                        <div class="me-3 border rounded overflow-hidden d-flex align-items-center justify-content-center bg-white shadow-sm"
                                              style="width: 50px; height: 50px; min-width: 50px;">
                                             <img v-if="articulo.Imagen" 
                                                  :src="`${BASE_URL}/uploads/${articulo.Imagen}`" 
@@ -181,7 +181,7 @@ const getBadgeStyle = (nombreColor) => {
                                     </div>
                                 </td>
                                 <td class="text-end pe-4">
-                                    <router-link :to="`/articulos/editar/${articulo.IdArticulo}`" class="btn btn-sm btn-outline-primary me-2 border-0 bg-transparent">
+                                    <router-link :to="`/articulos/editar/${articulo.IdArticulo}`" class="btn btn-sm btn-outline-secondary me-2 border-0 bg-transparent">
                                         <i class="fa-solid fa-pen"></i>
                                     </router-link>
                                     <button @click="confirmDelete(articulo)" class="btn btn-sm btn-outline-danger border-0 bg-transparent">
@@ -200,8 +200,8 @@ const getBadgeStyle = (nombreColor) => {
         <div class="modal fade" id="modalVerProducto" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content border-0 shadow-lg">
-                    <div class="modal-header border-bottom-0 pb-0">
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div class="modal-header border-bottom-0 p-0">
+                        <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close" style="z-index: 1050;"></button>
                     </div>
                     <div class="modal-body p-4 pt-2">
                         <div class="row g-4">
@@ -280,4 +280,6 @@ const getBadgeStyle = (nombreColor) => {
 .cursor-pointer:hover { background-color: rgba(0,0,0,0.02); }
 .text-decoration-underline-hover:hover { text-decoration: underline; }
 [data-bs-theme="dark"] .text-body { color: #e0e0e0 !important; }
+.object-fit-cover { object-fit: cover; }
+.object-fit-contain { object-fit: contain; }
 </style>

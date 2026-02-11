@@ -45,10 +45,26 @@ const articuloSeleccionado = computed(() => {
 const totalCompra = computed(() => {
     return carrito.value.reduce((sum, item) => sum + item.Subtotal, 0);
 });
-const agregarItem = () => {
+const preventNegatives = (e) => {
+    if (['e', 'E', '+', '-'].includes(e.key)) {
+        e.preventDefault();
+    }
+};
+const agregarItem = async () => {
     if (!itemActual.IdArticulo) return Swal.fire('Falta producto', 'Selecciona un artículo.', 'warning');
     if (itemActual.Cantidad <= 0) return Swal.fire('Cantidad inválida', 'La cantidad debe ser mayor a 0.', 'warning');
     if (itemActual.Costo < 0) return Swal.fire('Costo inválido', 'El costo no puede ser negativo.', 'warning');
+    if (Number(itemActual.Costo) === 0) {
+        const result = await Swal.fire({
+            title: '¿Costo $0.00?',
+            text: "Estás registrando un producto sin costo. ¿Es una bonificación o regalo?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, es correcto',
+            cancelButtonText: 'Corregir'
+        });
+        if (!result.isConfirmed) return;
+    }
     const art = articuloSeleccionado.value;
     const linea = {
         IdArticulo: art.IdArticulo,
@@ -62,8 +78,12 @@ const agregarItem = () => {
     const existe = carrito.value.find(i => i.IdArticulo === linea.IdArticulo);
     if (existe) {
         existe.Cantidad += linea.Cantidad;
+        existe.Costo = linea.Costo;
         existe.Subtotal = existe.Cantidad * existe.Costo; 
-        Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Cantidad actualizada', timer: 1500, showConfirmButton: false });
+        Swal.fire({ 
+            toast: true, position: 'top-end', icon: 'info', 
+            title: 'Cantidad actualizada', timer: 1500, showConfirmButton: false 
+        });
     } else {
         carrito.value.push(linea);
     }
@@ -113,7 +133,10 @@ const guardarEntrada = async () => {
                 Cancelar
             </router-link>
         </div>
-        <div class="row g-4">
+        <div v-if="loading" class="text-center py-5">
+            <div class="spinner-border text-primary"></div>
+        </div>
+        <div v-else class="row g-4">
             <div class="col-12 col-lg-4">
                 <div class="card minimal-card border-0 shadow-sm mb-4">
                     <div class="card-body p-4">
@@ -121,7 +144,7 @@ const guardarEntrada = async () => {
                             <i class="fa-solid fa-truck me-2"></i>Proveedor
                         </h6>
                         <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted">Seleccionar Proveedor</label>
+                            <label class="form-label small fw-bold text-muted">Seleccionar Proveedor <span class="text-danger">*</span></label>
                             <select v-model="encabezado.IdProveedor" class="form-select minimal-input">
                                 <option value="" disabled>-- Elige una opción --</option>
                                 <option v-for="prov in proveedores" :key="prov.IdProveedor" :value="prov.IdProveedor">
@@ -130,14 +153,14 @@ const guardarEntrada = async () => {
                             </select>
                         </div>
                         <div class="mb-0">
-                            <label class="form-label small fw-bold text-muted">Comentarios / Notas</label>
-                            <textarea v-model="encabezado.Comentarios" class="form-control minimal-input" rows="2" placeholder="Ej. Factura F-1234..."></textarea>
+                            <label class="form-label small fw-bold text-muted">Comentarios / Factura</label>
+                            <textarea v-model="encabezado.Comentarios" class="form-control minimal-input" rows="2" placeholder="Ej. Factura F-1234..." maxlength="200"></textarea>
                         </div>
                     </div>
                 </div>
                 <div class="card minimal-card border-0 shadow-sm">
                     <div class="card-body p-4">
-                        <h6 class="text-primary text-uppercase small fw-bold mb-3 border-bottom pb-2">
+                        <h6 class="text-success text-uppercase small fw-bold mb-3 border-bottom pb-2">
                             <i class="fa-solid fa-box-open me-2"></i>Agregar Producto
                         </h6>
                         <div class="mb-3">
@@ -145,22 +168,40 @@ const guardarEntrada = async () => {
                             <select v-model="itemActual.IdArticulo" class="form-select minimal-input">
                                 <option value="" disabled>-- Busca el producto --</option>
                                 <option v-for="art in articulos" :key="art.IdArticulo" :value="art.IdArticulo">
-                                    {{ art.NomArticulo }} ({{ art.StockActual }} {{ art.NombreUnidad || 'Pza' }})
+                                    {{ art.NomArticulo }} (Stock: {{ art.StockActual }})
                                 </option>
                             </select>
                         </div>
                         <div class="row g-2">
                             <div class="col-6">
                                 <label class="form-label small fw-bold text-muted">Cantidad</label>
-                                <input type="number" v-model.number="itemActual.Cantidad" class="form-control minimal-input" min="1">
+                                <input type="number" 
+                                       v-model.number="itemActual.Cantidad" 
+                                       class="form-control minimal-input text-center fw-bold" 
+                                       min="1" 
+                                       @keydown="preventNegatives">
                             </div>
                             <div class="col-6">
                                 <label class="form-label small fw-bold text-muted">Costo Unitario ($)</label>
-                                <input type="number" v-model.number="itemActual.Costo" class="form-control minimal-input" min="0" step="0.50">
+                                <input type="number" 
+                                       v-model.number="itemActual.Costo" 
+                                       class="form-control minimal-input text-end fw-bold text-success" 
+                                       min="0" 
+                                       step="0.50" 
+                                       @keydown="preventNegatives">
+                            </div>
+                        </div>
+                        <div v-if="articuloSeleccionado" class="mt-3 p-2 bg-light rounded border small text-muted">
+                            <div class="d-flex justify-content-between">
+                                <span>Precio Venta Actual:</span>
+                                <strong>${{ Number(articuloSeleccionado.PrecioVenta).toFixed(2) }}</strong>
+                            </div>
+                            <div v-if="Number(itemActual.Costo) > Number(articuloSeleccionado.PrecioVenta)" class="text-danger fw-bold mt-1">
+                                <i class="fa-solid fa-triangle-exclamation me-1"></i> ¡Costo mayor que precio venta!
                             </div>
                         </div>
                         <div class="d-grid mt-4">
-                            <button @click="agregarItem" class="btn btn-secondary minimal-btn fw-bold">
+                            <button @click="agregarItem" class="btn btn-secondary minimal-btn fw-bold" :disabled="!itemActual.IdArticulo">
                                 <i class="fa-solid fa-plus me-2"></i>Agregar a la lista
                             </button>
                         </div>
@@ -170,24 +211,25 @@ const guardarEntrada = async () => {
             <div class="col-12 col-lg-8">
                 <div class="card minimal-card border-0 shadow-sm h-100">
                     <div class="card-body p-0 d-flex flex-column">
-                        <div class="p-3 bg-light border-bottom">
+                        <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
                             <h6 class="m-0 fw-bold text-dark">Detalle de la Compra</h6>
+                            <span class="badge bg-secondary">{{ carrito.length }} Items</span>
                         </div>
-                        <div class="table-responsive flex-grow-1">
+                        <div class="table-responsive flex-grow-1" style="max-height: 500px; overflow-y: auto;">
                             <table class="table table-hover align-middle mb-0">
-                                <thead class="text-muted small text-uppercase bg-white">
+                                <thead class="text-muted small text-uppercase bg-white sticky-top">
                                     <tr>
                                         <th class="ps-4">Producto</th>
                                         <th class="text-center">Cant.</th>
                                         <th class="text-end">Costo U.</th>
                                         <th class="text-end">Subtotal</th>
-                                        <th class="text-end pe-4">Acción</th>
+                                        <th class="text-end pe-4"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr v-if="carrito.length === 0">
                                         <td colspan="5" class="text-center py-5 text-muted">
-                                            <i class="fa-solid fa-basket-shopping fs-1 mb-3 text-light-emphasis"></i>
+                                            <i class="fa-solid fa-cart-flatbed fs-1 mb-3 text-light-emphasis"></i>
                                             <p>No hay productos en la lista aún.</p>
                                         </td>
                                     </tr>
@@ -204,12 +246,12 @@ const guardarEntrada = async () => {
                                         <td class="text-end text-muted">
                                             ${{ item.Costo.toFixed(2) }}
                                         </td>
-                                        <td class="text-end fw-bold">
+                                        <td class="text-end fw-bold text-dark">
                                             ${{ item.Subtotal.toFixed(2) }}
                                         </td>
                                         <td class="text-end pe-4">
-                                            <button @click="eliminarItem(index)" class="btn btn-sm btn-outline-danger border-0">
-                                                <i class="fa-solid fa-times"></i>
+                                            <button @click="eliminarItem(index)" class="btn btn-sm btn-link text-danger p-0">
+                                                <i class="fa-solid fa-trash-can"></i>
                                             </button>
                                         </td>
                                     </tr>
@@ -219,11 +261,11 @@ const guardarEntrada = async () => {
                         <div class="p-4 bg-light border-top mt-auto">
                             <div class="row align-items-center">
                                 <div class="col-6">
-                                    <span class="text-muted small">Artículos distintos: {{ carrito.length }}</span>
+                                    <small class="text-muted">Revise los costos antes de confirmar.</small>
                                 </div>
                                 <div class="col-6 text-end">
-                                    <h4 class="fw-bold mb-0">
-                                        <small class="text-muted fs-6 fw-normal me-2">Total Compra:</small>
+                                    <h4 class="fw-bold mb-0 text-success">
+                                        <small class="text-dark fs-6 fw-normal me-2">Total a Pagar:</small>
                                         ${{ totalCompra.toFixed(2) }}
                                     </h4>
                                 </div>
@@ -250,7 +292,5 @@ const guardarEntrada = async () => {
     to { opacity: 1; transform: translateY(0); }
 }
 .minimal-card { overflow: hidden; }
-@media (max-width: 768px) {
-    .col-lg-8 { margin-top: 1rem; }
-}
+.sticky-top { top: 0; z-index: 10; }
 </style>

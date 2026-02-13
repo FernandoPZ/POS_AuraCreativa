@@ -19,13 +19,17 @@ exports.generarTicket = async (req, res) => {
             LogoUrl: null
         };
         const ventaQuery = `
-            SELECT v."IdVenta", v."Fecha", v."Total", v."ClienteNombre",
-                   pe."NombrePunto", pe."LinkGoogleMaps",
+            SELECT v."IdVenta",
+                   v."Fecha",
+                   v."Total",
+                   v."ClienteNombre",
+                   pe."NombrePunto",
+                   pe."LinkGoogleMaps",
                    u."Nombre" as "Vendedor"
-            FROM "Ventas" v
-            LEFT JOIN "Usuario" u ON v."IdUsuario" = u."IdUsuario"
-            LEFT JOIN "PuntosEntrega" pe ON v."IdPuntoEntrega" = pe."IdPunto"
-            WHERE v."IdVenta" = $1
+                FROM "Ventas" v
+                LEFT JOIN "Usuario" u ON v."IdUsuario" = u."IdUsuario"
+                LEFT JOIN "PuntosEntrega" pe ON v."IdPuntoEntrega" = pe."IdPunto"
+                WHERE v."IdVenta" = $1
         `;
         const ventaRes = await client.query(ventaQuery, [id]);
         if (ventaRes.rows.length === 0) {
@@ -33,12 +37,14 @@ exports.generarTicket = async (req, res) => {
         }
         const venta = ventaRes.rows[0];
         const detalleQuery = `
-            SELECT dv."Cantidad", dv."PrecioUnitario", dv."Subtotal",
+            SELECT dv."Cantidad",
+                   dv."PrecioUnitario",
+                   dv."Subtotal",
                    COALESCE(a."NomArticulo", c."Nombre", 'Producto borrado') as "Producto"
-            FROM "DetalleVentas" dv
-            LEFT JOIN "Articulos" a ON dv."IdArticulo" = a."IdArticulo"
-            LEFT JOIN "Combos" c ON dv."IdCombo" = c."IdCombo"
-            WHERE dv."IdVenta" = $1
+                FROM "DetalleVentas" dv
+                LEFT JOIN "Articulos" a ON dv."IdArticulo" = a."IdArticulo"
+                LEFT JOIN "Combos" c ON dv."IdCombo" = c."IdCombo"
+                WHERE dv."IdVenta" = $1
         `;
         const detalleRes = await client.query(detalleQuery, [id]);
         const productos = detalleRes.rows;

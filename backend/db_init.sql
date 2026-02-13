@@ -82,6 +82,7 @@ CREATE TABLE public."Combos" (
     "Nombre" character varying(100) NOT NULL,
     "Codigo" character varying(50),
     "Precio" numeric(10,2) NOT NULL,
+    "Imagen" text,
     "FechaCreacion" timestamp without time zone DEFAULT now(),
     "IdUsuarioCreacion" integer,
     "Activo" boolean DEFAULT true

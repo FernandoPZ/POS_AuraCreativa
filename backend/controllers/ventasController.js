@@ -6,14 +6,18 @@ exports.getVentas = async (req, res) => {
     const client = await pool.connect();
     try {
         const query = `
-            SELECT v."IdVenta", v."Fecha", v."Total", v."Estado", v."ClienteNombre",
+            SELECT v."IdVenta",
+                   v."Fecha",
+                   v."Total",
+                   v."Estado",
+                   v."ClienteNombre",
                    COALESCE(u."Nombre", 'Usuario Desconocido') as "Vendedor",
                    COALESCE(pe."NombrePunto", 'Mostrador General') as "PuntoEntrega"
-            FROM "Ventas" v
-            LEFT JOIN "Usuario" u ON v."IdUsuario" = u."IdUsuario"
-            LEFT JOIN "PuntosEntrega" pe ON v."IdPuntoEntrega" = pe."IdPunto"
-            ORDER BY v."Fecha" DESC
-            LIMIT 100
+                FROM "Ventas" v
+                LEFT JOIN "Usuario" u ON v."IdUsuario" = u."IdUsuario"
+                LEFT JOIN "PuntosEntrega" pe ON v."IdPuntoEntrega" = pe."IdPunto"
+                ORDER BY v."Fecha" DESC
+                LIMIT 100
         `;
         const result = await client.query(query);
         res.json(result.rows);
@@ -31,15 +35,17 @@ exports.getVentaDetalles = async (req, res) => {
     const client = await pool.connect();
     try {
         const query = `
-            SELECT dv."Cantidad", dv."PrecioUnitario", dv."Subtotal",
+            SELECT dv."Cantidad",
+                   dv."PrecioUnitario",
+                   dv."Subtotal",
                    COALESCE(a."NomArticulo", c."Nombre", 'Producto Eliminado') as "Producto",
                    CASE WHEN dv."IdCombo" IS NOT NULL THEN 'COMBO' ELSE 'ARTICULO' END as "Tipo",
                    dv."IdArticulo" as "IdProducto", 
                    dv."IdCombo" as "IdComboRef"
-            FROM "DetalleVentas" dv
-            LEFT JOIN "Articulos" a ON dv."IdArticulo" = a."IdArticulo"
-            LEFT JOIN "Combos" c ON dv."IdCombo" = c."IdCombo"
-            WHERE dv."IdVenta" = $1
+                FROM "DetalleVentas" dv
+                LEFT JOIN "Articulos" a ON dv."IdArticulo" = a."IdArticulo"
+                LEFT JOIN "Combos" c ON dv."IdCombo" = c."IdCombo"
+                WHERE dv."IdVenta" = $1
         `;
         const result = await client.query(query, [id]);
         res.json(result.rows);
@@ -65,10 +71,9 @@ exports.crearVenta = async (req, res) => {
         }
         await client.query('BEGIN');
         const ventaQuery = `
-            INSERT INTO "Ventas" 
-                ("IdUsuario", "Total", "Fecha", "Estado", "ClienteNombre", "IdPuntoEntrega")
-            VALUES ($1, $2, NOW(), 'COMPLETADA', $3, $4)
-            RETURNING "IdVenta";
+            INSERT INTO "Ventas" ("IdUsuario", "Total", "Fecha", "Estado", "ClienteNombre", "IdPuntoEntrega")
+                VALUES ($1, $2, NOW(), 'COMPLETADA', $3, $4)
+                RETURNING "IdVenta";
         `;
         const ventaResult = await client.query(ventaQuery, [
             idUsuario, 
@@ -82,7 +87,7 @@ exports.crearVenta = async (req, res) => {
             if (item.tipo === 'COMBO') {
                 await client.query(
                     `INSERT INTO "DetalleVentas" ("IdVenta", "IdCombo", "Cantidad", "PrecioUnitario", "Subtotal") 
-                     VALUES ($1, $2, $3, $4, $5)`,
+                        VALUES ($1, $2, $3, $4, $5)`,
                     [idVenta, item.id, item.cantidad, item.precio, subtotal]
                 );
                 const recetaRes = await client.query(
@@ -93,9 +98,9 @@ exports.crearVenta = async (req, res) => {
                     const cantidadNecesaria = item.cantidad * ing.Cantidad;
                     const updateRes = await client.query(
                         `UPDATE "Articulos" 
-                         SET "StockActual" = "StockActual" - $1 
-                         WHERE "IdArticulo" = $2 AND "StockActual" >= $1
-                         RETURNING "NomArticulo"`,
+                            SET "StockActual" = "StockActual" - $1 
+                            WHERE "IdArticulo" = $2 AND "StockActual" >= $1
+                            RETURNING "NomArticulo"`,
                         [cantidadNecesaria, ing.IdArticulo]
                     );
                     if (updateRes.rowCount === 0) {
@@ -105,14 +110,14 @@ exports.crearVenta = async (req, res) => {
             } else {
                 await client.query(
                     `INSERT INTO "DetalleVentas" ("IdVenta", "IdArticulo", "Cantidad", "PrecioUnitario", "Subtotal") 
-                     VALUES ($1, $2, $3, $4, $5)`,
+                        VALUES ($1, $2, $3, $4, $5)`,
                     [idVenta, item.id, item.cantidad, item.precio, subtotal]
                 );
                 const updateRes = await client.query(
                     `UPDATE "Articulos" 
-                     SET "StockActual" = "StockActual" - $1 
-                     WHERE "IdArticulo" = $2 AND "StockActual" >= $1
-                     RETURNING "NomArticulo"`,
+                        SET "StockActual" = "StockActual" - $1 
+                        WHERE "IdArticulo" = $2 AND "StockActual" >= $1
+                        RETURNING "NomArticulo"`,
                     [item.cantidad, item.id]
                 );
                 if (updateRes.rowCount === 0) {

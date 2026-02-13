@@ -57,7 +57,7 @@ const handleLogin = async () => {
                 class="img-fluid mb-2 logo-anim"
                 style="max-height: 180px; width: auto; object-fit: contain;" 
             />
-            </div>
+        </div>
         <div class="card minimal-card p-4 shadow-sm mx-auto" style="max-width: 380px; width: 100%;">
             <div class="card-body">
                 <h5 class="text-center mb-4 fw-bold text-muted">Bienvenido</h5>

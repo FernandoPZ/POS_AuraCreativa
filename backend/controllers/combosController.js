@@ -171,8 +171,11 @@ exports.updateCombo = async (req, res) => {
         if (nombreImagen) {
             const updateWithImg = `
                 UPDATE "Combos"
-                SET "Nombre" = $1, "Codigo" = $2, "Precio" = $3, "Imagen" = $5
-                WHERE "IdCombo" = $4
+                    SET "Nombre" = $1,
+                        "Codigo" = $2,
+                        "Precio" = $3,
+                        "Imagen" = $5
+                    WHERE "IdCombo" = $4
             `;
             await client.query(updateWithImg, [
                 Nombre.substring(0, 100), 
@@ -184,8 +187,10 @@ exports.updateCombo = async (req, res) => {
         } else {
             const updateNoImg = `
                 UPDATE "Combos"
-                SET "Nombre" = $1, "Codigo" = $2, "Precio" = $3
-                WHERE "IdCombo" = $4
+                    SET "Nombre" = $1,
+                        "Codigo" = $2,
+                        "Precio" = $3
+                    WHERE "IdCombo" = $4
             `;
             await client.query(updateNoImg, [
                 Nombre.substring(0, 100), 

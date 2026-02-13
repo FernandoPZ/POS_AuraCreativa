@@ -72,8 +72,7 @@ exports.updateConfig = async (req, res) => {
         ];
         if (checkRes.rows.length === 0) {
             const insertQuery = `
-                INSERT INTO "Configuracion" 
-                    ("NombreTienda", "Direccion", "Telefono", "MensajeTicket", "RedSocial", "LogoUrl")
+                INSERT INTO "Configuracion" ("NombreTienda", "Direccion", "Telefono", "MensajeTicket", "RedSocial", "LogoUrl")
                     VALUES ($1, $2, $3, $4, $5, $6)
                     RETURNING *;
             `;

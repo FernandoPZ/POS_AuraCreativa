@@ -5,31 +5,31 @@ exports.getResumen = async (req, res) => {
     try {
         const ventasHoyQuery = `
             SELECT COALESCE(SUM("Total"), 0) as total
-            FROM "Ventas"
-            WHERE DATE("Fecha") = CURRENT_DATE
+                FROM "Ventas"
+                WHERE DATE("Fecha") = CURRENT_DATE
         `;
         const ventasMesQuery = `
             SELECT COALESCE(SUM("Total"), 0) as total
-            FROM "Ventas"
-            WHERE EXTRACT(MONTH FROM "Fecha") = EXTRACT(MONTH FROM CURRENT_DATE)
-            AND EXTRACT(YEAR FROM "Fecha") = EXTRACT(YEAR FROM CURRENT_DATE)
+                FROM "Ventas"
+                WHERE EXTRACT(MONTH FROM "Fecha") = EXTRACT(MONTH FROM CURRENT_DATE)
+                AND EXTRACT(YEAR FROM "Fecha") = EXTRACT(YEAR FROM CURRENT_DATE)
         `;
         const stockBajoQuery = `
             SELECT COUNT(*) as total
-            FROM "Articulos" A
-            INNER JOIN "CfgStock" C ON A."IdCfgStock" = C."IdCfgStock"
-            WHERE A."StockActual" <= C."CantidadMinima"
-            AND C."Activo" = true
+                FROM "Articulos" A
+                INNER JOIN "CfgStock" C ON A."IdCfgStock" = C."IdCfgStock"
+                WHERE A."StockActual" <= C."CantidadMinima"
+                AND C."Activo" = true
         `;
         const recientesQuery = `
             SELECT v."IdVenta",
                    v."Total",
                    v."Fecha",
                    u."Nombre" as "Vendedor"
-            FROM "Ventas" v
-            LEFT JOIN "Usuario" u ON v."IdUsuario" = u."IdUsuario"
-            ORDER BY v."Fecha" DESC
-            LIMIT 5
+                FROM "Ventas" v
+                LEFT JOIN "Usuario" u ON v."IdUsuario" = u."IdUsuario"
+                ORDER BY v."Fecha" DESC
+                LIMIT 5
         `;
         const [ventasHoyRes, ventasMesRes, stockRes, recientesRes] = await Promise.all([
             client.query(ventasHoyQuery),

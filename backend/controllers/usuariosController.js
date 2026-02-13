@@ -7,10 +7,14 @@ exports.getUsuarios = async (req, res) => {
     const client = await pool.connect();
     try {
         const result = await client.query(`
-            SELECT "IdUsuario", "Nombre", "Email", "Rol", "FechaCreacion"
-            FROM "Usuario" 
-            WHERE "Activo" = true
-            ORDER BY "Nombre" ASC
+            SELECT "IdUsuario",
+                   "Nombre",
+                   "Email",
+                   "Rol",
+                   "FechaCreacion"
+                FROM "Usuario" 
+                WHERE "Activo" = true
+                ORDER BY "Nombre" ASC
         `);
         res.json(result.rows);
     } catch (error) {
@@ -27,9 +31,12 @@ exports.getUsuarioById = async (req, res) => {
     const client = await pool.connect();
     try {
         const result = await client.query(`
-            SELECT "IdUsuario", "Nombre", "Email", "Rol" 
-            FROM "Usuario" 
-            WHERE "IdUsuario" = $1 AND "Activo" = true
+            SELECT "IdUsuario",
+                   "Nombre",
+                   "Email",
+                   "Rol" 
+                FROM "Usuario" 
+                WHERE "IdUsuario" = $1 AND "Activo" = true
         `, [id]);
         if (result.rows.length === 0) {
             return res.status(404).json({ msg: 'Usuario no encontrado' });
@@ -66,8 +73,8 @@ exports.createUsuario = async (req, res) => {
         const hashPassword = await bcrypt.hash(passwordFinal, salt);
         const query = `
             INSERT INTO "Usuario" ("Nombre", "Email", "PasswordHash", "Rol", "FechaCreacion", "Activo")
-            VALUES ($1, $2, $3, $4, NOW(), TRUE)
-            RETURNING "IdUsuario", "Nombre", "Email", "Rol"
+                VALUES ($1, $2, $3, $4, NOW(), TRUE)
+                RETURNING "IdUsuario", "Nombre", "Email", "Rol"
         `;
         const result = await client.query(query, [nombreFinal, correoFinal, hashPassword, rolFinal]);
         

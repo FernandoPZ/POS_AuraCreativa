@@ -13,11 +13,11 @@ exports.getEntradas = async (req, res) => {
                    p."NomProveedor",
                    p."RFC",
                    u."Nombre" as "Usuario"
-            FROM "Entradas" e
-            JOIN "Proveedores" p ON e."IdProveedor" = p."IdProveedor"
-            LEFT JOIN "Usuario" u ON e."IdUsuarioCreacion" = u."IdUsuario"
-            ORDER BY e."Fecha" DESC
-            LIMIT 100
+                FROM "Entradas" e
+                JOIN "Proveedores" p ON e."IdProveedor" = p."IdProveedor"
+                LEFT JOIN "Usuario" u ON e."IdUsuarioCreacion" = u."IdUsuario"
+                ORDER BY e."Fecha" DESC
+                LIMIT 100
         `;
         const result = await client.query(query);
         res.json(result.rows);
@@ -42,8 +42,8 @@ exports.createEntrada = async (req, res) => {
         const entradaQuery = `
             INSERT INTO "Entradas" 
                 ("IdProveedor", "Total", "Comentarios", "IdUsuarioCreacion", "Fecha")
-            VALUES ($1, $2, $3, $4, NOW())
-            RETURNING "IdEntrada"
+                VALUES ($1, $2, $3, $4, NOW())
+                RETURNING "IdEntrada"
         `;
         const entradaRes = await client.query(entradaQuery, [IdProveedor, Total, Comentarios || '', IdUsuario]);
         const IdEntrada = entradaRes.rows[0].IdEntrada;
@@ -53,7 +53,7 @@ exports.createEntrada = async (req, res) => {
             const subtotal = CantidadEntrante * CostoUnitarioEntrante;
             const detalleQuery = `
                 INSERT INTO "DetalleEntradas" ("IdEntrada", "IdArticulo", "Cantidad", "CostoUnitario", "Subtotal")
-                VALUES ($1, $2, $3, $4, $5)
+                    VALUES ($1, $2, $3, $4, $5)
             `;
             await client.query(detalleQuery, [IdEntrada, prod.IdArticulo, CantidadEntrante, CostoUnitarioEntrante, subtotal]);
             const artActual = await client.query(
@@ -71,10 +71,10 @@ exports.createEntrada = async (req, res) => {
                 }
                 const updateQuery = `
                     UPDATE "Articulos"
-                    SET "StockActual" = $1,
-                        "CostoPromedio" = $2,
-                        "FechaModificacion" = NOW()
-                    WHERE "IdArticulo" = $3
+                        SET "StockActual" = $1,
+                            "CostoPromedio" = $2,
+                            "FechaModificacion" = NOW()
+                        WHERE "IdArticulo" = $3
                 `;
                 await client.query(updateQuery, [NuevoStockTotal, NuevoCostoPromedio, prod.IdArticulo]);
             }
@@ -114,9 +114,9 @@ exports.getDetalleEntrada = async (req, res) => {
                    a."Talla",
                    a."Color",
                    a."NombreUnidad"
-            FROM "DetalleEntradas" d
-            JOIN "Articulos" a ON d."IdArticulo" = a."IdArticulo"
-            WHERE d."IdEntrada" = $1
+                FROM "DetalleEntradas" d
+                JOIN "Articulos" a ON d."IdArticulo" = a."IdArticulo"
+                WHERE d."IdEntrada" = $1
         `;
         const result = await client.query(query, [id]);
         res.json(result.rows);

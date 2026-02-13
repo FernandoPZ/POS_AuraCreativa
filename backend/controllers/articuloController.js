@@ -115,7 +115,8 @@ exports.createArticulo = async (req, res) => {
         await client.query('BEGIN');
         const cfgRes = await client.query(
             `INSERT INTO "CfgStock" ("CantidadMaxima", "CantidadMinima", "FechaAlta", "Activo") 
-             VALUES ($1, $2, NOW(), TRUE) RETURNING "IdCfgStock"`,
+                VALUES ($1, $2, NOW(), TRUE)
+                RETURNING "IdCfgStock"`,
             [CantidadMaxima || 10, CantidadMinima || 1]
         );
         const IdCfgStock = cfgRes.rows[0].IdCfgStock;
@@ -124,8 +125,8 @@ exports.createArticulo = async (req, res) => {
                                      "StockActual", "PrecioVenta", "Activo",
                                      "IdUsuarioCreacion", "FechaCreacion",
                                      "Categoria", "Talla", "Color", "DetallesTecnicos", "NombreUnidad", "Imagen")
-            VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7, NOW(), $8, $9, $10, $11, $12, $13)
-            RETURNING *
+                VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7, NOW(), $8, $9, $10, $11, $12, $13)
+                RETURNING *
         `;
         const result = await client.query(artQuery, [
             codigoFinal,
@@ -180,13 +181,19 @@ exports.updateArticulo = async (req, res) => {
         let result;
         if (nombreImagen) {
             const updateQueryConImagen = `
-                UPDATE "Articulos" SET
-                       "NomArticulo" = $1, "IdProveedor" = $2, "PrecioVenta" = $3,
-                       "Categoria" = $4, "Talla" = $5, "Color" = $6,
-                       "DetallesTecnicos" = $7, "NombreUnidad" = $8,
-                       "FechaModificacion" = NOW(),
-                       "Imagen" = $10
-                WHERE "IdArticulo" = $9 RETURNING *
+                UPDATE "Articulos"
+                    SET "NomArticulo" = $1,
+                        "IdProveedor" = $2,
+                        "PrecioVenta" = $3,
+                        "Categoria" = $4,
+                        "Talla" = $5,
+                        "Color" = $6,
+                        "DetallesTecnicos" = $7,
+                        "NombreUnidad" = $8,
+                        "FechaModificacion" = NOW(),
+                        "Imagen" = $10
+                    WHERE "IdArticulo" = $9
+                    RETURNING *
             `;
             result = await client.query(updateQueryConImagen, [
                 NomArticulo.substring(0, 100),
@@ -202,12 +209,18 @@ exports.updateArticulo = async (req, res) => {
             ]);
         } else {
             const updateQuerySinImagen = `
-                UPDATE "Articulos" SET
-                       "NomArticulo" = $1, "IdProveedor" = $2, "PrecioVenta" = $3,
-                       "Categoria" = $4, "Talla" = $5, "Color" = $6,
-                       "DetallesTecnicos" = $7, "NombreUnidad" = $8,
-                       "FechaModificacion" = NOW()
-                WHERE "IdArticulo" = $9 RETURNING *
+                UPDATE "Articulos"
+                    SET "NomArticulo" = $1,
+                        "IdProveedor" = $2,
+                        "PrecioVenta" = $3,
+                        "Categoria" = $4,
+                        "Talla" = $5,
+                        "Color" = $6,
+                        "DetallesTecnicos" = $7,
+                        "NombreUnidad" = $8,
+                        "FechaModificacion" = NOW()
+                    WHERE "IdArticulo" = $9
+                    RETURNING *
             `;
             result = await client.query(updateQuerySinImagen, [
                 NomArticulo.substring(0, 100),
@@ -242,8 +255,10 @@ exports.deleteArticulo = async (req, res) => {
     const client = await pool.connect();
     try {
         await client.query(`
-            UPDATE "Articulos" SET "Activo" = FALSE, "FechaModificacion" = NOW()
-            WHERE "IdArticulo" = $1
+            UPDATE "Articulos"
+                SET "Activo" = FALSE,
+                    "FechaModificacion" = NOW()
+                WHERE "IdArticulo" = $1
         `, [id]);
         if (IdUsuario) {
             await registrarAccion(IdUsuario, 'BAJA_ARTICULO', `Eliminó producto ID ${id}`);

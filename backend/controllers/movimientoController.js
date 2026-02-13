@@ -79,8 +79,12 @@ exports.entradaInsumo = async (req, res) => {
             });
         }
         await client.query(
-            `UPDATE "Articulos" SET "StockActual" = $1, "FechaUltMod" = NOW(), "ClaUserMod" = $2, "NombrePcMod" = $3 
-             WHERE "IdArticulo" = $4`,
+            `UPDATE "Articulos"
+                SET "StockActual" = $1,
+                    "FechaUltMod" = NOW(),
+                    "ClaUserMod" = $2,
+                    "NombrePcMod" = $3 
+                WHERE "IdArticulo" = $4`,
             [nuevoStock, ClaUserMod, NombrePcMod, IdArticulo]
         );
         await client.query(
